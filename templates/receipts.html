@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Список приёмок</title>
+</head>
+<body>
+    <h1>Список приёмок</h1>
+    <ul>
+        {% for supply in supplies %}
+            <li>
+                <a href="{{ url_for('get_receipt', receipt_id=supply.id) }}">{{ supply.name }}</a>
+            </li>
+        {% endfor %}
+    </ul>
+    <a href="{{ url_for('index') }}">На главную</a>
+</body>
+</html>

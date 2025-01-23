@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Редактировать приёмку</title>
+</head>
+<body>
+    <h1>Редактировать приёмку: {{ receipt.name }}</h1>
+    <form method="post">
+        <label for="description">Описание:</label>
+        <input type="text" id="description" name="description" value="{{ receipt.description }}">
+        <!-- Добавьте другие поля для редактирования по мере необходимости -->
+        <button type="submit">Сохранить</button>
+    </form>
+    <a href="{{ url_for('get_receipt', receipt_id=receipt.id) }}">Отмена</a>
+</body>
+</html>

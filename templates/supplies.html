@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>МойСклад - Приёмки</title>
+    <style>
+        .container {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        th {
+            background-color: #f5f5f5;
+        }
+        .supply-link {
+            color: #007bff;
+            text-decoration: none;
+        }
+        .supply-link:hover {
+            text-decoration: underline;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+        .modal-content {
+            background-color: white;
+            margin: 15% auto;
+            padding: 20px;
+            width: 70%;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+        .close {
+            float: right;
+            cursor: pointer;
+            font-size: 28px;
+        }
+        .error {
+            color: red;
+            margin-top: 10px;
+        }
+        .edit-form {
+            margin-top: 20px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            display: none;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .edit-link {
+            color: blue;
+            text-decoration: underline;
+            cursor: pointer;
+        }
+        .supply-details {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #eee;
+        }
+        .header h1 {
+            margin: 0;
+            color: #333;
+        }
+        .button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        .button-primary {
+            background-color: #007bff;
+            color: white;
+        }
+        .button-danger {
+            background-color: #dc3545;
+            color: white;
+        }
+        .button:hover {
+            opacity: 0.9;
+        }
+        .back-link {
+            color: #007bff;
+            text-decoration: none;
+            margin-right: 20px;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Список приёмок</h1>
+            <a href="/supplies/new" class="button button-primary">Создать приёмку</a>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Номер</th>
+                    <th>Дата</th>
+                    <th>Контрагент</th>
+                    <th>Сумма</th>
+                </tr>
+            </thead>
+            <tbody id="suppliesTable"></tbody>
+        </table>
+
+        <div id="editForm" class="edit-form">
+            <h3>Редактирование приёмки</h3>
+            <div class="form-group">
+                <label>Номер:</label>
+                <input type="text" id="name">
+            </div>
+            <div class="form-group">
+                <label>Описание:</label>
+                <textarea id="description"></textarea>
+            </div>
+            <div class="form-group">
+                <label>Дата:</label>
+                <input type="datetime-local" id="moment">
+            </div>
+            <button onclick="saveSupply()">Сохранить</button>
+            <button onclick="cancelEdit()">Отмена</button>
+        </div>
+    </div>
+
+    <!-- Модальное окно для просмотра/редактирования приёмки -->
+    <div id="supplyModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>Информация о приёмке</h3>
+            <div id="supplyDetails"></div>
+        </div>
+    </div>
+
+    <script>
+        let currentSupplyId = null;
+
+        // Загрузка списка приёмок при загрузке страницы
+        document.addEventListener('DOMContentLoaded', loadSupplies);
+
+        async function loadSupplies() {
+            try {
+                const response = await fetch('/api/supplies');
+                const data = await response.json();
+                
+                if (response.ok) {
+                    const tbody = document.getElementById('suppliesTable');
+                    tbody.innerHTML = '';
+                    
+                    data.rows.forEach(supply => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td><a href="/supplies/${supply.id}" class="supply-link">${supply.name}</a></td>
+                            <td>${new Date(supply.moment).toLocaleString()}</td>
+                            <td>${supply.agent?.name || 'Не указан'}</td>
+                            <td>${(supply.sum / 100).toLocaleString()} ₽</td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                } else {
+                    console.error('Ошибка загрузки приёмок:', data.error);
+                }
+            } catch (error) {
+                console.error('Ошибка при загрузке приёмок:', error);
+            }
+        }
+
+        async function showSupplyDetails(supplyId) {
+            try {
+                const response = await fetch(`/api/supplies/${supplyId}`);
+                const supply = await response.json();
+                
+                if (response.ok) {
+                    const detailsDiv = document.createElement('div');
+                    detailsDiv.className = 'supply-details';
+                    const agentName = supply.agent ? supply.agent.name : 'Не указан';
+                    
+                    detailsDiv.innerHTML = `
+                        <h2>Детали приёмки ${supply.name}</h2>
+                        <p><strong>Номер:</strong> ${supply.name}</p>
+                        <p><strong>Дата:</strong> ${new Date(supply.moment).toLocaleString()}</p>
+                        <p><strong>Контрагент:</strong> ${agentName}</p>
+                        <p><strong>Сумма:</strong> ${supply.sum / 100} ₽</p>
+                        <p><strong>Статус:</strong> ${supply.state ? supply.state.name : 'Не указан'}</p>
+                        <button onclick="editSupply('${supply.id}')">Редактировать</button>
+                    `;
+                    
+                    // Заменяем или добавляем блок с деталями
+                    const existingDetails = document.querySelector('.supply-details');
+                    if (existingDetails) {
+                        existingDetails.replaceWith(detailsDiv);
+                    } else {
+                        document.querySelector('.container').appendChild(detailsDiv);
+                    }
+                }
+            } catch (error) {
+                console.error('Ошибка при загрузке деталей приёмки:', error);
+            }
+        }
+
+        // Закрытие модального окна
+        document.querySelector('.close').onclick = function() {
+            document.getElementById('supplyModal').style.display = 'none';
+        }
+
+        async function editSupply(supplyId) {
+            try {
+                const response = await fetch(`/api/supplies/${supplyId}`);
+                const supply = await response.json();
+                
+                if (response.ok) {
+                    currentSupplyId = supplyId;
+                    document.getElementById('name').value = supply.name;
+                    document.getElementById('description').value = supply.description || '';
+                    document.getElementById('moment').value = supply.moment.slice(0, 16);
+                    document.getElementById('editForm').style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Ошибка при получении данных приёмки:', error);
+            }
+        }
+
+        async function saveSupply() {
+            if (!currentSupplyId) return;
+
+            const data = {
+                name: document.getElementById('name').value,
+                description: document.getElementById('description').value,
+                moment: document.getElementById('moment').value
+            };
+
+            try {
+                const response = await fetch(`/api/supplies/${currentSupplyId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (response.ok) {
+                    document.getElementById('editForm').style.display = 'none';
+                    loadSupplies();
+                }
+            } catch (error) {
+                console.error('Ошибка при сохранении приёмки:', error);
+            }
+        }
+
+        function cancelEdit() {
+            currentSupplyId = null;
+            document.getElementById('editForm').style.display = 'none';
+        }
+    </script>
+</body>
+</html> 

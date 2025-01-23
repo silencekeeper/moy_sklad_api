@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Детали приёмки</title>
+</head>
+<body>
+    <h1>Детали приёмки: {{ receipt.name }}</h1>
+    <p><strong>Описание:</strong> {{ receipt.description }}</p>
+    <!-- Добавьте другие поля по мере необходимости -->
+    <a href="{{ url_for('edit_receipt', receipt_id=receipt.id) }}">Редактировать</a>
+    <a href="{{ url_for('get_receipts') }}">Назад к списку приёмок</a>
+</body>
+</html>

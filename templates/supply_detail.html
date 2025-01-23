@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Приёмка</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #eee;
+        }
+        .header h1 {
+            margin: 0;
+            color: #333;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border-radius: 6px;
+        }
+        .section h2 {
+            margin-top: 0;
+            color: #444;
+            font-size: 1.2em;
+        }
+        .field {
+            display: grid;
+            grid-template-columns: 200px 1fr;
+            margin-bottom: 15px;
+            align-items: center;
+        }
+        .field-label {
+            font-weight: bold;
+            color: #666;
+        }
+        .field-value {
+            color: #333;
+        }
+        .positions-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        .positions-table th, .positions-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        .positions-table th {
+            background-color: #f5f5f5;
+            font-weight: bold;
+            color: #444;
+        }
+        .positions-table tr:hover {
+            background-color: #f9f9f9;
+        }
+        .button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        .button-primary {
+            background-color: #007bff;
+            color: white;
+        }
+        .button-danger {
+            background-color: #dc3545;
+            color: white;
+        }
+        .button-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+        .button:hover {
+            opacity: 0.9;
+        }
+        .actions {
+            display: flex;
+            gap: 10px;
+        }
+        .back-link {
+            color: #007bff;
+            text-decoration: none;
+            margin-right: 20px;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Приёмка <span id="supplyName"></span></h1>
+            <div class="actions">
+                <a href="/supplies" class="back-link">← К списку приёмок</a>
+                <button class="button button-primary" onclick="editSupply()">Редактировать</button>
+                <button class="button button-danger" onclick="deleteSupply()">Удалить</button>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Основная информация</h2>
+            <div class="field">
+                <span class="field-label">Номер:</span>
+                <span class="field-value" id="name"></span>
+            </div>
+            <div class="field">
+                <span class="field-label">Дата:</span>
+                <span class="field-value" id="moment"></span>
+            </div>
+            <div class="field">
+                <span class="field-label">Контрагент:</span>
+                <span class="field-value" id="agent"></span>
+            </div>
+            <div class="field">
+                <span class="field-label">Организация:</span>
+                <span class="field-value" id="organization"></span>
+            </div>
+            <div class="field">
+                <span class="field-label">Склад:</span>
+                <span class="field-value" id="store"></span>
+            </div>
+            <div class="field">
+                <span class="field-label">Сумма:</span>
+                <span class="field-value" id="sum"></span>
+            </div>
+            <div class="field">
+                <span class="field-label">Входящий номер:</span>
+                <span class="field-value" id="incomingNumber"></span>
+            </div>
+            <div class="field">
+                <span class="field-label">Входящая дата:</span>
+                <span class="field-value" id="incomingDate"></span>
+            </div>
+            <div class="field">
+                <span class="field-label">Статус:</span>
+                <span class="field-value" id="state"></span>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Позиции</h2>
+            <table class="positions-table">
+                <thead>
+                    <tr>
+                        <th>Наименование</th>
+                        <th>Количество</th>
+                        <th>Цена</th>
+                        <th>Сумма</th>
+                    </tr>
+                </thead>
+                <tbody id="positionsTable"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const supplyId = window.location.pathname.split('/').pop();
+
+        async function loadSupply() {
+            try {
+                const response = await fetch(`/api/supplies/${supplyId}`);
+                const supply = await response.json();
+                
+                if (response.ok) {
+                    document.getElementById('supplyName').textContent = supply.name;
+                    document.getElementById('name').textContent = supply.name;
+                    document.getElementById('moment').textContent = new Date(supply.moment).toLocaleString();
+                    document.getElementById('agent').textContent = supply.agent?.name || 'Не указан';
+                    document.getElementById('organization').textContent = supply.organization?.name || 'Не указана';
+                    document.getElementById('store').textContent = supply.store?.name || 'Не указан';
+                    document.getElementById('sum').textContent = `${(supply.sum / 100).toLocaleString()} ₽`;
+                    document.getElementById('incomingNumber').textContent = supply.incomingNumber || 'Не указан';
+                    document.getElementById('incomingDate').textContent = supply.incomingDate ? new Date(supply.incomingDate).toLocaleString() : 'Не указана';
+                    document.getElementById('state').textContent = supply.state?.name || 'Не указан';
+
+                    // Загружаем позиции
+                    if (supply.positions?.meta?.href) {
+                        loadPositions(supply.positions.meta.href);
+                    }
+                } else {
+                    alert('Ошибка при загрузке приёмки: ' + supply.error);
+                }
+            } catch (error) {
+                console.error('Ошибка при загрузке приёмки:', error);
+                alert('Ошибка при загрузке приёмки');
+            }
+        }
+
+        async function loadPositions(positionsHref) {
+            try {
+                const response = await fetch(`/api/supply_positions/${supplyId}`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    const tbody = document.getElementById('positionsTable');
+                    tbody.innerHTML = '';
+                    
+                    data.rows.forEach(position => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td>${position.assortment?.name || 'Не указано'}</td>
+                            <td>${position.quantity}</td>
+                            <td>${(position.price / 100).toLocaleString()} ₽</td>
+                            <td>${((position.price * position.quantity) / 100).toLocaleString()} ₽</td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                }
+            } catch (error) {
+                console.error('Ошибка при загрузке позиций:', error);
+            }
+        }
+
+        async function deleteSupply() {
+            if (confirm('Вы уверены, что хотите удалить эту приёмку?')) {
+                try {
+                    const response = await fetch(`/api/supplies/${supplyId}`, {
+                        method: 'DELETE'
+                    });
+                    
+                    if (response.ok) {
+                        alert('Приёмка успешно удалена');
+                        window.location.href = '/supplies';
+                    } else {
+                        const error = await response.json();
+                        alert('Ошибка при удалении: ' + error.error);
+                    }
+                } catch (error) {
+                    console.error('Ошибка при удалении приёмки:', error);
+                    alert('Ошибка при удалении приёмки');
+                }
+            }
+        }
+
+        // Загружаем данные при загрузке страницы
+        loadSupply();
+    </script>
+</body>
+</html> 
