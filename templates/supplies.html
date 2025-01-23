@@ -134,6 +134,24 @@
         .back-link:hover {
             text-decoration: underline;
         }
+        .positions-table {
+            margin-left: 20px;
+            width: calc(100% - 20px);
+        }
+        .positions-header {
+            background-color: #e9e9e9;
+        }
+        #supply-details {
+            display: none;
+            margin-top: 20px;
+        }
+        .back-button {
+            margin-bottom: 20px;
+            padding: 8px 16px;
+            background-color: #f4f4f4;
+            border: none;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -142,17 +160,25 @@
             <h1>Список приёмок</h1>
             <a href="/supplies/new" class="button button-primary">Создать приёмку</a>
         </div>
-        <table>
-            <thead>
-                <tr>
-                    <th>Номер</th>
-                    <th>Дата</th>
-                    <th>Контрагент</th>
-                    <th>Сумма</th>
-                </tr>
-            </thead>
-            <tbody id="suppliesTable"></tbody>
-        </table>
+        <div id="supplies-list">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Номер</th>
+                        <th>Организация</th>
+                        <th>Дата создания</th>
+                        <th>Сумма</th>
+                    </tr>
+                </thead>
+                <tbody id="supplies-table-body">
+                </tbody>
+            </table>
+        </div>
+
+        <div id="supply-details">
+            <button class="back-button" onclick="showSuppliesList()">← Назад к списку</button>
+            <div id="supply-details-content"></div>
+        </div>
 
         <div id="editForm" class="edit-form">
             <h3>Редактирование приёмки</h3>
@@ -188,64 +214,125 @@
         // Загрузка списка приёмок при загрузке страницы
         document.addEventListener('DOMContentLoaded', loadSupplies);
 
-        async function loadSupplies() {
-            try {
-                const response = await fetch('/api/supplies');
-                const data = await response.json();
-                
-                if (response.ok) {
-                    const tbody = document.getElementById('suppliesTable');
-                    tbody.innerHTML = '';
-                    
-                    data.rows.forEach(supply => {
-                        const tr = document.createElement('tr');
-                        tr.innerHTML = `
-                            <td><a href="/supplies/${supply.id}" class="supply-link">${supply.name}</a></td>
-                            <td>${new Date(supply.moment).toLocaleString()}</td>
-                            <td>${supply.agent?.name || 'Не указан'}</td>
-                            <td>${(supply.sum / 100).toLocaleString()} ₽</td>
+        function loadSupplies() {
+            fetch('/api/supplies')
+                .then(response => response.json())
+                .then(supplies => {
+                    const tableBody = document.getElementById('supplies-table-body');
+                    supplies.forEach(supply => {
+                        const row = document.createElement('tr');
+                        const created = new Date(supply.created).toLocaleString('ru-RU');
+                        row.innerHTML = `
+                            <td>
+                                <a href="javascript:void(0)" 
+                                   onclick="showSupplyDetails('${supply.id}')" 
+                                   class="supply-link">${supply.name}</a>
+                            </td>
+                            <td>${supply.organization || '-'}</td>
+                            <td>${created}</td>
+                            <td>${supply.sum.toFixed(2)} ₽</td>
                         `;
-                        tbody.appendChild(tr);
+                        tableBody.appendChild(row);
                     });
-                } else {
-                    console.error('Ошибка загрузки приёмок:', data.error);
-                }
-            } catch (error) {
-                console.error('Ошибка при загрузке приёмок:', error);
-            }
+                })
+                .catch(error => {
+                    console.error('Ошибка при загрузке приёмок:', error);
+                    document.getElementById('supplies-table-body').innerHTML = 
+                        '<tr><td colspan="4" style="color: red;">Ошибка при загрузке данных</td></tr>';
+                });
         }
 
-        async function showSupplyDetails(supplyId) {
-            try {
-                const response = await fetch(`/api/supplies/${supplyId}`);
-                const supply = await response.json();
-                
-                if (response.ok) {
-                    const detailsDiv = document.createElement('div');
-                    detailsDiv.className = 'supply-details';
-                    const agentName = supply.agent ? supply.agent.name : 'Не указан';
-                    
-                    detailsDiv.innerHTML = `
-                        <h2>Детали приёмки ${supply.name}</h2>
-                        <p><strong>Номер:</strong> ${supply.name}</p>
-                        <p><strong>Дата:</strong> ${new Date(supply.moment).toLocaleString()}</p>
-                        <p><strong>Контрагент:</strong> ${agentName}</p>
-                        <p><strong>Сумма:</strong> ${supply.sum / 100} ₽</p>
-                        <p><strong>Статус:</strong> ${supply.state ? supply.state.name : 'Не указан'}</p>
-                        <button onclick="editSupply('${supply.id}')">Редактировать</button>
-                    `;
-                    
-                    // Заменяем или добавляем блок с деталями
-                    const existingDetails = document.querySelector('.supply-details');
-                    if (existingDetails) {
-                        existingDetails.replaceWith(detailsDiv);
-                    } else {
-                        document.querySelector('.container').appendChild(detailsDiv);
+        function showSuppliesList() {
+            document.getElementById('supplies-list').style.display = 'block';
+            document.getElementById('supply-details').style.display = 'none';
+        }
+
+        function showSupplyDetails(supplyId) {
+            console.log('Loading supply details for ID:', supplyId);
+            
+            const detailsContent = document.getElementById('supply-details-content');
+            detailsContent.innerHTML = '<p>Загрузка данных...</p>';
+            
+            document.getElementById('supplies-list').style.display = 'none';
+            document.getElementById('supply-details').style.display = 'block';
+
+            fetch(`/api/supplies/${supplyId}`)
+                .then(response => {
+                    console.log('Response status:', response.status);
+                    if (!response.ok) {
+                        return response.json().then(err => {
+                            throw new Error(err.error || 'Ошибка при загрузке данных');
+                        });
                     }
-                }
-            } catch (error) {
-                console.error('Ошибка при загрузке деталей приёмки:', error);
-            }
+                    return response.json();
+                })
+                .then(supply => {
+                    console.log('Received supply data:', supply);
+                    
+                    detailsContent.innerHTML = `
+                        <h2>Приёмка ${supply.name || 'Без номера'}</h2>
+                        <table>
+                            <tr>
+                                <th>Организация</th>
+                                <td>${supply.organization || '-'}</td>
+                            </tr>
+                            <tr>
+                                <th>Склад</th>
+                                <td>${supply.store || '-'}</td>
+                            </tr>
+                            <tr>
+                                <th>Сумма</th>
+                                <td>${supply.sum.toFixed(2)} ₽</td>
+                            </tr>
+                            <tr>
+                                <th>НДС включён</th>
+                                <td>${supply.vatIncluded ? 'Да' : 'Нет'}</td>
+                            </tr>
+                            <tr>
+                                <th>НДС учитывается</th>
+                                <td>${supply.vatEnabled ? 'Да' : 'Нет'}</td>
+                            </tr>
+                            <tr>
+                                <th>Сумма НДС</th>
+                                <td>${supply.vatSum.toFixed(2)} ₽</td>
+                            </tr>
+                        </table>
+
+                        <h3>Позиции:</h3>
+                        ${supply.positions && supply.positions.length > 0 ? `
+                            <table class="positions-table">
+                                <tr class="positions-header">
+                                    <th>Наименование</th>
+                                    <th>Количество</th>
+                                    <th>Цена</th>
+                                    <th>НДС</th>
+                                    <th>Скидка</th>
+                                    <th>Сумма</th>
+                                </tr>
+                                ${supply.positions.map(pos => `
+                                    <tr>
+                                        <td>${pos.name || '-'}</td>
+                                        <td>${pos.quantity}</td>
+                                        <td>${pos.price.toFixed(2)} ₽</td>
+                                        <td>${pos.vatEnabled ? (pos.vat + '%') : 'Без НДС'}</td>
+                                        <td>${pos.discount || 0}%</td>
+                                        <td>${pos.total.toFixed(2)} ₽</td>
+                                    </tr>
+                                `).join('')}
+                            </table>
+                        ` : '<p>Нет позиций</p>'}
+                    `;
+                })
+                .catch(error => {
+                    console.error('Error loading supply details:', error);
+                    detailsContent.innerHTML = `
+                        <div style="color: red; padding: 20px;">
+                            <h3>Ошибка при загрузке данных</h3>
+                            <p>${error.message}</p>
+                            <button onclick="showSuppliesList()">Вернуться к списку</button>
+                        </div>
+                    `;
+                });
         }
 
         // Закрытие модального окна

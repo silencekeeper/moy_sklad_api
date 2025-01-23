@@ -50,40 +50,62 @@
             <label for="token">Токен:</label>
             <input type="text" id="token" value="02bf2b522f9bb7671245b1c825e9d669a7cd581a">
         </div>
-        <button onclick="authorize()">Войти</button>
+        <button onclick="saveToken()">Войти</button>
         <div id="result"></div>
     </div>
 
     <script>
-        async function authorize() {
-            const token = document.getElementById('token').value;
-            const resultDiv = document.getElementById('result');
-
-            try {
-                const response = await fetch('/api/token', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ 
-                        token: token
-                    })
-                });
-
-                if (response.ok) {
-                    resultDiv.className = 'success';
-                    resultDiv.textContent = 'Авторизация успешна!';
-                    window.location.href = '/supplies';
-                } else {
-                    const error = await response.json();
-                    resultDiv.className = 'error';
-                    resultDiv.textContent = error.error || 'Ошибка авторизации';
-                }
-            } catch (error) {
-                resultDiv.className = 'error';
-                resultDiv.textContent = 'Ошибка при выполнении запроса';
+        function saveToken() {
+            const tokenInput = document.getElementById('token');
+            const token = tokenInput.value.trim();
+            
+            if (!token) {
+                alert('Пожалуйста, введите токен');
+                return;
             }
+
+            fetch('/api/token', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    access_token: token
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Token saved successfully:', data);
+                alert('Токен успешно сохранен');
+                // Перенаправляем на страницу приёмок
+                window.location.href = '/supplies';
+            })
+            .catch(error => {
+                console.error('Error saving token:', error);
+                alert('Ошибка при сохранении токена');
+            });
         }
+
+        // Проверяем статус авторизации при загрузке страницы
+        document.addEventListener('DOMContentLoaded', function() {
+            fetch('/api/auth/status')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.authenticated) {
+                        // Если пользователь уже авторизован, показываем соответствующее сообщение
+                        document.getElementById('auth-status').textContent = 
+                            `Вы авторизованы как ${data.user}`;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error checking auth status:', error);
+                });
+        });
     </script>
 </body>
 </html>

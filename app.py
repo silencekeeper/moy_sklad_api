@@ -86,7 +86,7 @@ def supply_details(supply_id):
     if 'user_id' not in session:
         return jsonify({'error': 'Не авторизован'}), 401
 
-    user = User.query.get(session['user_id'])
+    user = db.session.get(User, session['user_id'])
     token = Token.query.filter_by(user_id=user.id).order_by(Token.created_at.desc()).first()
 
     if request.method == 'GET':
@@ -174,163 +174,229 @@ def edit_receipt(receipt_id):
             return redirect(url_for('get_receipts'))
 
 @app.route('/api/token', methods=['POST'])
-def get_moysklad_token():
-    data = request.json
-    login = data.get('login')
-    password = data.get('password')
-    token = data.get('token')
-    remember = data.get('remember', False)
-
+def save_token():
     try:
-        if token:
-            # Проверяем валидность токена через API МойСклад
-            app.logger.info(f'Попытка авторизации по токену')
-            response = requests.get(
-                'https://api.moysklad.ru/api/remap/1.2/entity/employee',
-                headers={
-                    'Authorization': f'Bearer {token}',
-                    'Accept-Encoding': 'gzip'
-                }
-            )
-        elif login and password:
-            # Если передан логин и пароль, получаем токен через Basic Auth
-            app.logger.info(f'Попытка авторизации по логину/паролю')
-            credentials = base64.b64encode(f"{login}:{password}".encode()).decode()
-            response = requests.post(
-                'https://api.moysklad.ru/api/remap/1.2/security/token',
-                headers={
-                    'Authorization': f'Basic {credentials}',
-                    'Accept-Encoding': 'gzip'
-                }
-            )
+        app.logger.info('Получены данные для сохранения токена')
+        app.logger.info(f'Headers: {request.headers}')
+        app.logger.info(f'Data: {request.get_data()}')
+        
+        # Проверяем наличие пользователя в сессии
+        if 'user_id' not in session:
+            app.logger.error('Отсутствует user_id в сессии')
+            return jsonify({'error': 'Unauthorized'}), 401
+
+        # Пробуем получить данные из разных источников
+        if request.is_json:
+            data = request.get_json()
+            app.logger.info('Получены JSON данные')
         else:
-            app.logger.error('Не предоставлены данные для авторизации')
-            return jsonify({
-                'error': 'Необходимо указать токен или логин/пароль',
-                'code': 'Unauthorized'
-            }), 401
+            try:
+                data = request.form.to_dict()
+                app.logger.info('Получены form данные')
+            except:
+                data = {}
+                app.logger.error('Не удалось получить данные из формы')
 
-        if response.status_code == 200:
-            if token:
-                token_value = token
-            else:
-                token_data = response.json()
-                token_value = token_data['access_token']
-            
-            # Сохраняем токен в сессии
-            session['ms_token'] = token_value
-            app.logger.info(f'Токен успешно сохранен в сессии')
-            
-            # Создаем или получаем пользователя
-            username = login or 'token_user'
-            user = User.query.filter_by(username=username).first()
-            if not user:
-                user = User(username=username, password=password or '', remember_credentials=remember)
-                db.session.add(user)
-                db.session.commit()
-                app.logger.info(f'Создан новый пользователь: {username}')
-            elif remember:
-                user.remember_credentials = True
-                if password:
-                    user.password = password
-                db.session.commit()
-                app.logger.info(f'Обновлены данные пользователя: {username}')
+        # Проверяем наличие токена в данных
+        access_token = data.get('access_token')
+        if not access_token:
+            app.logger.error('Отсутствует access_token в данных')
+            return jsonify({'error': 'Token is required'}), 400
 
-            # Создаем новый токен в БД
-            new_token = Token(
-                access_token=token_value,
-                user_id=user.id,
-                expires_at=datetime.utcnow() + timedelta(hours=24)
-            )
-            db.session.add(new_token)
-            db.session.commit()
-            app.logger.info(f'Токен сохранен в базе данных')
+        app.logger.info('Попытка авторизации по токену')
+        
+        # Получаем пользователя
+        user = db.session.get(User, session['user_id'])
+        if not user:
+            app.logger.error(f'Пользователь не найден: {session["user_id"]}')
+            return jsonify({'error': 'User not found'}), 404
 
-            session['user_id'] = user.id
-            
-            return jsonify({
-                'success': True,
-                'access_token': token_value,
-                'remember': remember,
-                'redirect': url_for('supplies_page')
-            })
-        else:
-            error_data = response.json()
-            app.logger.error(f'Ошибка авторизации: {error_data}')
-            return jsonify({
-                'error': error_data.get('error', 'Ошибка авторизации'),
-                'code': error_data.get('code', 'Unauthorized'),
-                'details': error_data
-            }), response.status_code
+        # Сохраняем токен в сессии
+        session['access_token'] = access_token
+        app.logger.info('Токен успешно сохранен в сессии')
+
+        # Сохраняем токен в базе данных
+        token = Token(
+            user_id=user.id,
+            access_token=access_token
+        )
+        db.session.add(token)
+        db.session.commit()
+        app.logger.info('Токен сохранен в базе данных')
+
+        return jsonify({'message': 'Token saved successfully'})
 
     except Exception as e:
-        app.logger.error(f'Неожиданная ошибка при авторизации: {str(e)}')
+        app.logger.error(f'Ошибка при сохранении токена: {str(e)}')
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/auth/status', methods=['GET'])
+def auth_status():
+    try:
+        is_authenticated = 'user_id' in session and 'access_token' in session
+        user = None
+        if is_authenticated:
+            user = db.session.get(User, session['user_id'])
+            is_authenticated = user is not None
+
         return jsonify({
-            'error': 'Неожиданная ошибка при авторизации',
-            'code': 'InternalServerError',
-            'details': str(e)
-        }), 500
+            'authenticated': is_authenticated,
+            'user': user.username if user else None
+        })
+    except Exception as e:
+        app.logger.error(f'Ошибка при проверке статуса авторизации: {str(e)}')
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/supplies', methods=['GET'])
-def get_supplies():
-    """Получение списка приемок из МойСклад"""
+def get_supplies_list():
     try:
-        # Проверяем авторизацию
         if 'user_id' not in session:
-            app.logger.error('Пользователь не авторизован')
             return jsonify({
                 'error': 'Необходима авторизация',
                 'code': 'Unauthorized'
             }), 401
 
-        # Получаем токен из БД
-        user = User.query.get(session['user_id'])
+        # Обновляем использование get()
+        user = db.session.get(User, session['user_id'])
         if not user:
-            app.logger.error(f'Пользователь не найден: {session["user_id"]}')
-            return jsonify({
-                'error': 'Пользователь не найден',
-                'code': 'UserNotFound'
-            }), 401
+            return jsonify({'error': 'User not found'}), 404
 
         token = Token.query.filter_by(user_id=user.id).order_by(Token.created_at.desc()).first()
-        if not token or token.is_expired():
-            app.logger.error('Токен истек или не найден')
-            return jsonify({
-                'error': 'Необходима повторная авторизация',
-                'code': 'TokenExpired'
-            }), 401
 
-        # Формируем заголовки запроса
         headers = {
             'Authorization': f'Bearer {token.access_token}',
             'Accept-Encoding': 'gzip'
         }
 
-        # Запрос к API МойСклад
-        url = 'https://api.moysklad.ru/api/remap/1.2/entity/supply'
-        app.logger.info(f'Отправка запроса к МойСклад: {url}')
-        
-        response = requests.get(url, headers=headers)
-        app.logger.info(f'Получен ответ от МойСклад: {response.status_code}')
+        response = requests.get(
+            'https://api.moysklad.ru/api/remap/1.2/entity/supply',
+            headers=headers
+        )
 
         if response.status_code == 200:
-            supplies = response.json()
-            app.logger.info(f'Успешно получены приемки. Количество: {len(supplies.get("rows", []))}')
-            return jsonify(supplies)
+            data = response.json()
+            supplies = data.get('rows', [])
+            
+            formatted_supplies = []
+            for supply in supplies:
+                formatted_supply = {
+                    'id': supply.get('id'),
+                    'name': supply.get('name'),
+                    'organization': supply.get('organization', {}).get('name'),
+                    'sum': supply.get('sum', 0) / 100,  # Конвертируем копейки в рубли
+                    'created': supply.get('created'),
+                    'href': supply.get('meta', {}).get('href')
+                }
+                formatted_supplies.append(formatted_supply)
+
+            return jsonify(formatted_supplies)
         else:
             error_data = response.json()
-            app.logger.error(f'Ошибка при получении приемок: {error_data}')
+            app.logger.error(f'Ошибка при получении приёмок: {error_data}')
             return jsonify({
-                'error': 'Ошибка при получении списка приемок',
-                'code': error_data.get('code', 'UnknownError'),
+                'error': 'Ошибка при получении списка приёмок',
                 'details': error_data
             }), response.status_code
 
     except Exception as e:
-        app.logger.error(f'Неожиданная ошибка при получении приемок: {str(e)}')
+        app.logger.error(f'Неожиданная ошибка при получении приёмок: {str(e)}')
+        app.logger.error(f'Детали ответа API: {response.text if "response" in locals() else "Нет данных"}')
         return jsonify({
             'error': 'Внутренняя ошибка сервера',
-            'code': 'InternalServerError',
+            'details': str(e)
+        }), 500
+
+@app.route('/api/supplies/<supply_id>', methods=['GET'])
+def get_supply_details(supply_id):
+    """Получение детальной информации о конкретной приёмке"""
+    try:
+        if 'user_id' not in session:
+            return jsonify({
+                'error': 'Необходима авторизация',
+                'code': 'Unauthorized'
+            }), 401
+
+        user = db.session.get(User, session['user_id'])
+        token = Token.query.filter_by(user_id=user.id).order_by(Token.created_at.desc()).first()
+
+        headers = {
+            'Authorization': f'Bearer {token.access_token}',
+            'Accept-Encoding': 'gzip'
+        }
+
+        # Получаем основную информацию о приёмке с expand для организации и склада
+        response = requests.get(
+            f'https://api.moysklad.ru/api/remap/1.2/entity/supply/{supply_id}',
+            headers=headers,
+            params={
+                'expand': 'organization,store'
+            }
+        )
+
+        if response.status_code == 200:
+            supply = response.json()
+            app.logger.info(f'Получены данные приёмки: {supply}')
+            
+            # Получаем позиции приёмки
+            positions_response = requests.get(
+                f'https://api.moysklad.ru/api/remap/1.2/entity/supply/{supply_id}/positions',
+                headers=headers,
+                params={
+                    'expand': 'assortment'
+                }
+            )
+            
+            positions = []
+            if positions_response.status_code == 200:
+                positions_data = positions_response.json()
+                app.logger.info(f'Получены позиции приёмки: {positions_data}')
+                if 'rows' in positions_data:
+                    positions = positions_data['rows']
+            
+            # Форматируем данные приёмки
+            formatted_supply = {
+                'id': supply.get('id'),
+                'name': supply.get('name'),
+                # Получаем имя организации из развернутого объекта
+                'organization': supply.get('organization', {}).get('name') if supply.get('organization') else None,
+                # Получаем имя склада из развернутого объекта
+                'store': supply.get('store', {}).get('name') if supply.get('store') else None,
+                'sum': supply.get('sum', 0) / 100,
+                'vatEnabled': supply.get('vatEnabled', False),
+                'vatIncluded': supply.get('vatIncluded', False),
+                'vatSum': supply.get('vatSum', 0) / 100,
+                'created': supply.get('created'),
+                'positions': []
+            }
+            
+            # Форматируем позиции
+            for pos in positions:
+                assortment = pos.get('assortment', {})
+                position = {
+                    'name': assortment.get('name') if assortment else 'Неизвестный товар',
+                    'quantity': pos.get('quantity', 0),
+                    'price': pos.get('price', 0) / 100,
+                    'vat': pos.get('vat', 0),
+                    'vatEnabled': pos.get('vatEnabled', False),
+                    'discount': pos.get('discount', 0),
+                    'total': (pos.get('quantity', 0) * pos.get('price', 0)) / 100
+                }
+                formatted_supply['positions'].append(position)
+
+            app.logger.info(f'Отформатированные данные приёмки: {formatted_supply}')
+            return jsonify(formatted_supply)
+        else:
+            error_data = response.json()
+            app.logger.error(f'Ошибка при получении приёмки: {error_data}')
+            return jsonify({
+                'error': 'Ошибка при получении приёмки',
+                'details': error_data
+            }), response.status_code
+
+    except Exception as e:
+        app.logger.error(f'Неожиданная ошибка при получении приёмки: {str(e)}')
+        return jsonify({
+            'error': 'Внутренняя ошибка сервера',
             'details': str(e)
         }), 500
 
