@@ -1,32 +1,32 @@
-import os
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for
+from flask_sqlalchemy import SQLAlchemy
+from datetime import datetime
 import requests
+import logging
+from logging.handlers import RotatingFileHandler
+import os
+import json
 from requests.auth import HTTPBasicAuth
 from dotenv import load_dotenv
 from flask import session
 from flask_login import UserMixin
 import base64
 from datetime import datetime, timedelta
-from flask_sqlalchemy import SQLAlchemy
-import logging
-from logging.handlers import RotatingFileHandler
+import pudb
+import uuid
+from flask_migrate import Migrate
 
-load_dotenv()
-
+# Создаем приложение Flask
 app = Flask(__name__)
-app.secret_key = 'ваш_секретный_ключ'
+
+# Конфигурация приложения
+app.config['SECRET_KEY'] = 'your-secret-key'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///moysklad.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# Настройка логирования
-handler = RotatingFileHandler('app.log', maxBytes=10000, backupCount=3)
-handler.setFormatter(logging.Formatter(
-    '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
-))
-app.logger.addHandler(handler)
-app.logger.setLevel(logging.INFO)
-
+# Инициализация базы данных
 db = SQLAlchemy(app)
+migrate = Migrate(app, db)
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -44,6 +44,56 @@ class Token(db.Model):
 
     def is_expired(self):
         return datetime.utcnow() > self.expires_at
+    
+class Supply(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    external_code = db.Column(db.String(255), unique=True, nullable=False)
+    moysklad_id = db.Column(db.String(255), unique=True, nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    store_href = db.Column(db.String(255), nullable=False)
+    counterparty_href = db.Column(db.String(255), nullable=False)
+    milk_mass = db.Column(db.Float, nullable=False)
+    fat_percent = db.Column(db.Float, nullable=False)
+    protein_percent = db.Column(db.Float, nullable=False)
+    fat_kg = db.Column(db.Float, nullable=False)
+    protein_kg = db.Column(db.Float, nullable=False)
+    price = db.Column(db.Float, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+# Создаем директорию для логов, если её нет
+if not os.path.exists('logs'):
+    os.makedirs('logs')
+
+# Настраиваем логирование
+formatter = logging.Formatter(
+    '[%(asctime)s] %(levelname)s in %(module)s: %(message)s'
+)
+
+# Файловый обработчик
+file_handler = RotatingFileHandler(
+    'logs/moysklad.log',
+    maxBytes=10240000,
+    backupCount=5,
+    encoding='utf-8'
+)
+file_handler.setFormatter(formatter)
+file_handler.setLevel(logging.INFO)
+
+# Консольный обработчик
+console_handler = logging.StreamHandler()
+console_handler.setFormatter(formatter)
+console_handler.setLevel(logging.INFO)
+
+# Настраиваем логгер приложения
+app.logger.addHandler(file_handler)
+app.logger.addHandler(console_handler)
+app.logger.setLevel(logging.INFO)
+
+app.logger.info('Приложение запущено')
+
+load_dotenv()
+
 
 # Создаем таблицы при запуске
 with app.app_context():
@@ -56,8 +106,29 @@ headers = {
     "Authorization": f"Bearer {TOKEN}"
 }
 
-MOYSKLAD_API_URL = 'https://online.moysklad.ru/api/remap/1.2'
+MOYSKLAD_API_URL = 'https://api.moysklad.ru/api/remap/1.2'
 auth = HTTPBasicAuth(os.getenv('MOYSKLAD_LOGIN'), os.getenv('MOYSKLAD_PASSWORD'))
+
+# Пример данных, которые могут быть возвращены
+counterparties = [
+    {"id": "1", "name": "Контрагент 1"},
+    {"id": "2", "name": "Контрагент 2"}
+]
+
+organizations = [
+    {"id": "1", "name": "Организация 1"},
+    {"id": "2", "name": "Организация 2"}
+]
+
+warehouses = [
+    {"id": "1", "name": "Склад 1"},
+    {"id": "2", "name": "Склад 2"}
+]
+
+products = [
+    {"id": "1", "name": "Товар 1"},
+    {"id": "2", "name": "Товар 2"}
+]
 
 @app.route('/')
 def index():
@@ -69,166 +140,60 @@ def supplies_page():
         return redirect(url_for('index'))
     return render_template('supplies.html')
 
-@app.route('/supplies/new')
-def new_supply_page():
-    if 'user_id' not in session:
-        return redirect(url_for('index'))
-    return render_template('supply_new.html')
-
-@app.route('/supplies/<string:supply_id>')
-def supply_detail_page(supply_id):
-    if 'user_id' not in session:
-        return redirect(url_for('index'))
-    return render_template('supply_detail.html')
-
-@app.route('/api/supplies/<string:supply_id>', methods=['GET', 'PUT'])
-def supply_details(supply_id):
-    if 'user_id' not in session:
-        return jsonify({'error': 'Не авторизован'}), 401
-
-    user = db.session.get(User, session['user_id'])
-    token = Token.query.filter_by(user_id=user.id).order_by(Token.created_at.desc()).first()
-
-    if request.method == 'GET':
-        try:
-            response = requests.get(
-                f'https://api.moysklad.ru/api/remap/1.2/entity/supply/{supply_id}',
-                headers={
-                    'Authorization': f'Bearer {token.access_token}',
-                    'Accept-Encoding': 'gzip'
-                }
-            )
-            
-            if response.status_code == 200:
-                return jsonify(response.json())
-            else:
-                return jsonify({'error': 'Ошибка получения данных приёмки'}), response.status_code
-
-        except Exception as e:
-            app.logger.error(f'Ошибка при получении данных приёмки: {str(e)}')
-            return jsonify({'error': str(e)}), 500
-
-    elif request.method == 'PUT':
-        try:
-            data = request.json
-            response = requests.put(
-                f'https://api.moysklad.ru/api/remap/1.2/entity/supply/{supply_id}',
-                headers={
-                    'Authorization': f'Bearer {token.access_token}',
-                    'Accept-Encoding': 'gzip',
-                    'Content-Type': 'application/json'
-                },
-                json=data
-            )
-            
-            if response.status_code == 200:
-                return jsonify(response.json())
-            else:
-                return jsonify({'error': 'Ошибка обновления приёмки'}), response.status_code
-
-        except Exception as e:
-            app.logger.error(f'Ошибка при обновлении приёмки: {str(e)}')
-            return jsonify({'error': str(e)}), 500
-
-@app.route('/receipts')
-def get_receipts():
-    response = requests.get(f'{MOYSKLAD_API_URL}/entity/supply', auth=auth)
-    if response.status_code == 200:
-        supplies = response.json().get('rows', [])
-        return render_template('receipts.html', supplies=supplies)
-    else:
-        flash('Ошибка при получении списка приёмок.')
-        return redirect(url_for('index'))
-
-@app.route('/receipt/<receipt_id>')
-def get_receipt(receipt_id):
-    response = requests.get(f'{MOYSKLAD_API_URL}/entity/supply/{receipt_id}', auth=auth)
-    if response.status_code == 200:
-        receipt = response.json()
-        return render_template('receipt_detail.html', receipt=receipt)
-    else:
-        flash('Ошибка при получении деталей приёмки.')
-        return redirect(url_for('get_receipts'))
-
-@app.route('/receipt/<receipt_id>/edit', methods=['GET', 'POST'])
-def edit_receipt(receipt_id):
-    if request.method == 'POST':
-        updated_data = {
-            "description": request.form.get('description'),
-            # Добавьте другие поля для обновления по мере необходимости
-        }
-        response = requests.put(f'{MOYSKLAD_API_URL}/entity/supply/{receipt_id}', json=updated_data, auth=auth)
-        if response.status_code == 200:
-            flash('Приёмка успешно обновлена.')
-            return redirect(url_for('get_receipt', receipt_id=receipt_id))
-        else:
-            flash('Ошибка при обновлении приёмки.')
-            return redirect(url_for('edit_receipt', receipt_id=receipt_id))
-    else:
-        response = requests.get(f'{MOYSKLAD_API_URL}/entity/supply/{receipt_id}', auth=auth)
-        if response.status_code == 200:
-            receipt = response.json()
-            return render_template('edit_receipt.html', receipt=receipt)
-        else:
-            flash('Ошибка при получении данных приёмки для редактирования.')
-            return redirect(url_for('get_receipts'))
+@app.route('/supplies/new', methods=['GET'])
+def new_supply():
+    logging.debug("Отображение страницы создания новой приёмки")
+    return render_template('new_supply.html')
 
 @app.route('/api/token', methods=['POST'])
 def save_token():
+    """Сохранение токена доступа"""
     try:
         app.logger.info('Получены данные для сохранения токена')
         app.logger.info(f'Headers: {request.headers}')
         app.logger.info(f'Data: {request.get_data()}')
         
-        # Проверяем наличие пользователя в сессии
-        if 'user_id' not in session:
-            app.logger.error('Отсутствует user_id в сессии')
-            return jsonify({'error': 'Unauthorized'}), 401
-
-        # Пробуем получить данные из разных источников
-        if request.is_json:
-            data = request.get_json()
-            app.logger.info('Получены JSON данные')
-        else:
-            try:
-                data = request.form.to_dict()
-                app.logger.info('Получены form данные')
-            except:
-                data = {}
-                app.logger.error('Не удалось получить данные из формы')
-
-        # Проверяем наличие токена в данных
-        access_token = data.get('access_token')
-        if not access_token:
-            app.logger.error('Отсутствует access_token в данных')
-            return jsonify({'error': 'Token is required'}), 400
-
-        app.logger.info('Попытка авторизации по токену')
+        # Получаем данные из запроса
+        data = request.get_json()
+        if not data or 'access_token' not in data:
+            app.logger.error('Отсутствует токен в запросе')
+            return jsonify({
+                'error': 'Отсутствует токен в запросе'
+            }), 400
+            
+        access_token = data['access_token']
         
-        # Получаем пользователя
-        user = db.session.get(User, session['user_id'])
+        # Создаем пользователя, если его нет
+        user = User.query.filter_by(username='token_user').first()
         if not user:
-            app.logger.error(f'Пользователь не найден: {session["user_id"]}')
-            return jsonify({'error': 'User not found'}), 404
-
+            user = User(username='token_user')
+            db.session.add(user)
+            db.session.commit()
+            app.logger.info('Создан новый пользователь token_user')
+        
         # Сохраняем токен в сессии
-        session['access_token'] = access_token
+        session['ms_token'] = access_token
+        session['user_id'] = user.id
         app.logger.info('Токен успешно сохранен в сессии')
-
+        
         # Сохраняем токен в базе данных
         token = Token(
+            access_token=access_token,
             user_id=user.id,
-            access_token=access_token
+            created_at=datetime.utcnow()
         )
         db.session.add(token)
         db.session.commit()
         app.logger.info('Токен сохранен в базе данных')
-
+        
         return jsonify({'message': 'Token saved successfully'})
-
+        
     except Exception as e:
         app.logger.error(f'Ошибка при сохранении токена: {str(e)}')
-        return jsonify({'error': str(e)}), 500
+        return jsonify({
+            'error': 'Внутренняя ошибка сервера',
+            'details': str(e)
+        }), 500
 
 @app.route('/api/auth/status', methods=['GET'])
 def auth_status():
@@ -251,66 +216,95 @@ def auth_status():
 def get_supplies_list():
     try:
         if 'user_id' not in session:
-            return jsonify({
-                'error': 'Необходима авторизация',
-                'code': 'Unauthorized'
-            }), 401
+            return jsonify({'error': 'Необходима авторизация'}), 401
 
-        # Обновляем использование get()
         user = db.session.get(User, session['user_id'])
         if not user:
-            return jsonify({'error': 'User not found'}), 404
+            return jsonify({'error': 'Пользователь не найден'}), 404
 
-        token = Token.query.filter_by(user_id=user.id).order_by(Token.created_at.desc()).first()
+        store_href = request.args.get('store')
+        
+        query = Supply.query.filter_by(user_id=user.id)
+        
+        if store_href:
+            query = query.filter_by(store_href=store_href)
+        
+        supplies = query.all()
 
-        headers = {
-            'Authorization': f'Bearer {token.access_token}',
-            'Accept-Encoding': 'gzip'
-        }
-
-        response = requests.get(
-            'https://api.moysklad.ru/api/remap/1.2/entity/supply',
+        # Получаем список складов
+        stores_response = requests.get(
+            f'{MOYSKLAD_API_URL}/entity/store',
             headers=headers
         )
-
-        if response.status_code == 200:
-            data = response.json()
-            supplies = data.get('rows', [])
-            
-            formatted_supplies = []
-            for supply in supplies:
-                formatted_supply = {
-                    'id': supply.get('id'),
-                    'name': supply.get('name'),
-                    'organization': supply.get('organization', {}).get('name'),
-                    'sum': supply.get('sum', 0) / 100,  # Конвертируем копейки в рубли
-                    'created': supply.get('created'),
-                    'href': supply.get('meta', {}).get('href')
-                }
-                formatted_supplies.append(formatted_supply)
-
-            return jsonify(formatted_supplies)
+        
+        if stores_response.status_code == 200:
+            stores_data = stores_response.json()
+            stores = stores_data.get('rows', [])
         else:
-            error_data = response.json()
-            app.logger.error(f'Ошибка при получении приёмок: {error_data}')
-            return jsonify({
-                'error': 'Ошибка при получении списка приёмок',
-                'details': error_data
-            }), response.status_code
+            stores = []
+
+        formatted_supplies = []
+        for supply in supplies:
+            # Получаем данные организации по её href
+            organization_response = requests.get(supply.counterparty_href, headers=headers)
+            if organization_response.ok:
+                organization_data = organization_response.json()
+                organization_name = organization_data['name']
+            else:
+                organization_name = 'Неизвестная организация'
+
+            # Получаем данные склада по его href  
+            store_response = requests.get(supply.store_href, headers=headers)
+            if store_response.ok:
+                store_data = store_response.json()
+                store_name = store_data['name']
+            else:
+                store_name = 'Неизвестный склад'
+
+            formatted_supply = {
+                'id': supply.id,
+                'name': supply.external_code,
+                'organization': organization_name,
+                'store_name': store_name,
+                'created': supply.created_at.isoformat(),
+                'sum': supply.price
+            }
+            formatted_supplies.append(formatted_supply)
+
+        return jsonify({
+            'supplies': formatted_supplies,
+            'stores': stores
+        })
 
     except Exception as e:
         app.logger.error(f'Неожиданная ошибка при получении приёмок: {str(e)}')
-        app.logger.error(f'Детали ответа API: {response.text if "response" in locals() else "Нет данных"}')
         return jsonify({
             'error': 'Внутренняя ошибка сервера',
             'details': str(e)
         }), 500
 
+def get_product_name(product_href, headers):
+    """Получает наименование продукта по ссылке"""
+    try:
+        response = requests.get(product_href, headers=headers)
+        if response.status_code == 200:
+            product_data = response.json()
+            return product_data.get('name', 'Неизвестный продукт')
+        else:
+            app.logger.error(f'Ошибка при получении продукта: {response.status_code}')
+            return 'Неизвестный продукт'
+    except Exception as e:
+        app.logger.error(f'Ошибка при запросе продукта: {str(e)}')
+        return 'Неизвестный продукт'
+
 @app.route('/api/supplies/<supply_id>', methods=['GET'])
 def get_supply_details(supply_id):
     """Получение детальной информации о конкретной приёмке"""
     try:
+        app.logger.info(f'\n\n=== ЗАПРОС ДЕТАЛЕЙ ПРИЁМКИ {supply_id} ===')
+        
         if 'user_id' not in session:
+            app.logger.error('Отсутствует user_id в сессии')
             return jsonify({
                 'error': 'Необходима авторизация',
                 'code': 'Unauthorized'
@@ -324,43 +318,42 @@ def get_supply_details(supply_id):
             'Accept-Encoding': 'gzip'
         }
 
-        # Получаем основную информацию о приёмке с expand для организации и склада
-        response = requests.get(
-            f'https://api.moysklad.ru/api/remap/1.2/entity/supply/{supply_id}',
-            headers=headers,
-            params={
-                'expand': 'organization,store'
-            }
-        )
+        url = f'{MOYSKLAD_API_URL}/entity/supply/{supply_id}'
+        params = {
+            'expand': 'organization,store,agent,positions'
+        }
+
+        app.logger.info(f'Отправка запроса к МойСклад:')
+        app.logger.info(f'URL: {url}')
+        app.logger.info(f'Параметры: {params}')
+        app.logger.info(f'Заголовки: {headers}')
+
+        # Получаем основную информацию о приёмке
+        response = requests.get(url, headers=headers, params=params)
+        
+        app.logger.info(f'Получен ответ от сервера. Статус: {response.status_code}')
+        app.logger.info(f'Заголовки ответа: {dict(response.headers)}')
+        
+        try:
+            response_data = response.json()
+            app.logger.info('\n=== ОТВЕТ СЕРВЕРА (НАЧАЛО) ===\n')
+            app.logger.info(json.dumps(response_data, ensure_ascii=False, indent=2))
+            app.logger.info('\n=== ОТВЕТ СЕРВЕРА (КОНЕЦ) ===\n')
+        except Exception as e:
+            app.logger.error(f'Ошибка при парсинге JSON: {str(e)}')
+            app.logger.error(f'Тело ответа: {response.text}')
+            raise
 
         if response.status_code == 200:
-            supply = response.json()
-            app.logger.info(f'Получены данные приёмки: {supply}')
-            
-            # Получаем позиции приёмки
-            positions_response = requests.get(
-                f'https://api.moysklad.ru/api/remap/1.2/entity/supply/{supply_id}/positions',
-                headers=headers,
-                params={
-                    'expand': 'assortment'
-                }
-            )
-            
-            positions = []
-            if positions_response.status_code == 200:
-                positions_data = positions_response.json()
-                app.logger.info(f'Получены позиции приёмки: {positions_data}')
-                if 'rows' in positions_data:
-                    positions = positions_data['rows']
+            supply = response_data
             
             # Форматируем данные приёмки
             formatted_supply = {
                 'id': supply.get('id'),
                 'name': supply.get('name'),
-                # Получаем имя организации из развернутого объекта
-                'organization': supply.get('organization', {}).get('name') if supply.get('organization') else None,
-                # Получаем имя склада из развернутого объекта
-                'store': supply.get('store', {}).get('name') if supply.get('store') else None,
+                'organization': supply.get('organization', {}).get('name'),
+                'store': supply.get('store', {}).get('name'),
+                'agent': supply.get('agent', {}).get('name'),
                 'sum': supply.get('sum', 0) / 100,
                 'vatEnabled': supply.get('vatEnabled', False),
                 'vatIncluded': supply.get('vatIncluded', False),
@@ -369,24 +362,39 @@ def get_supply_details(supply_id):
                 'positions': []
             }
             
-            # Форматируем позиции
-            for pos in positions:
-                assortment = pos.get('assortment', {})
-                position = {
-                    'name': assortment.get('name') if assortment else 'Неизвестный товар',
-                    'quantity': pos.get('quantity', 0),
-                    'price': pos.get('price', 0) / 100,
-                    'vat': pos.get('vat', 0),
-                    'vatEnabled': pos.get('vatEnabled', False),
-                    'discount': pos.get('discount', 0),
-                    'total': (pos.get('quantity', 0) * pos.get('price', 0)) / 100
-                }
-                formatted_supply['positions'].append(position)
+            # Обрабатываем позиции
+            if 'positions' in supply:
+                positions_data = supply['positions']
+                app.logger.info('\n=== ПОЗИЦИИ ПРИЁМКИ ===\n')
+                app.logger.info(json.dumps(positions_data, ensure_ascii=False, indent=2))
+                
+                if isinstance(positions_data, dict) and 'rows' in positions_data:
+                    for pos in positions_data['rows']:
+                        assortment_meta = pos.get('assortment', {}).get('meta', {})
+                        product_href = assortment_meta.get('href')
+                        product_name = get_product_name(product_href, headers) if product_href else 'Неизвестный продукт'
+                        
+                        position = {
+                            'name': product_name,
+                            'quantity': pos.get('quantity', 0),
+                            'price': pos.get('price', 0) / 100,
+                            'vat': pos.get('vat', 0),
+                            'vatEnabled': pos.get('vatEnabled', False),
+                            'discount': pos.get('discount', 0),
+                            'total': (pos.get('quantity', 0) * pos.get('price', 0)) / 100
+                        }
+                        formatted_supply['positions'].append(position)
 
-            app.logger.info(f'Отформатированные данные приёмки: {formatted_supply}')
+            app.logger.info('\n=== ОТФОРМАТИРОВАННЫЕ ДАННЫЕ ===\n')
+            app.logger.info(json.dumps(formatted_supply, ensure_ascii=False, indent=2))
+            
+            # Принудительно сбрасываем буфер логов
+            for handler in app.logger.handlers:
+                handler.flush()
+                
             return jsonify(formatted_supply)
         else:
-            error_data = response.json()
+            error_data = response_data
             app.logger.error(f'Ошибка при получении приёмки: {error_data}')
             return jsonify({
                 'error': 'Ошибка при получении приёмки',
@@ -395,54 +403,126 @@ def get_supply_details(supply_id):
 
     except Exception as e:
         app.logger.error(f'Неожиданная ошибка при получении приёмки: {str(e)}')
+        if 'response' in locals():
+            app.logger.error(f'Тело ответа при ошибке: {response.text}')
+        # Принудительно сбрасываем буфер логов
+        for handler in app.logger.handlers:
+            handler.flush()
         return jsonify({
             'error': 'Внутренняя ошибка сервера',
             'details': str(e)
         }), 500
 
 @app.route('/api/supplies', methods=['POST'])
-def create_supply():
-    """Создание новой приёмки"""
+def create_supplies():
     try:
         if 'user_id' not in session:
             app.logger.error('Пользователь не авторизован')
-            return jsonify({
-                'error': 'Необходима авторизация',
-                'code': 'Unauthorized'
-            }), 401
+            return jsonify({'error': 'Необходима авторизация'}), 401
 
         user = db.session.get(User, session['user_id'])
+        if not user:
+            app.logger.error(f'Пользователь не найден: {session["user_id"]}')
+            return jsonify({'error': 'Пользователь не найден'}), 401
+
         token = Token.query.filter_by(user_id=user.id).order_by(Token.created_at.desc()).first()
+        if not token:
+            app.logger.error('Токен не найден')
+            return jsonify({'error': 'Необходима авторизация'}), 401
 
-        data = request.json
-        app.logger.info(f'Попытка создания приёмки. Данные: {data}')
+        data = request.get_json()
+        supplies = []
+        created_supplies = []
 
+        for supply_data in data:
+            # Генерируем уникальный external_code
+            external_code = str(uuid.uuid4())
+            
+            supply = {
+                "organization": supply_data.get('organization', ''),
+                "agent": supply_data.get('agent', ''),
+                "store": supply_data.get('store', ''),
+                'moment': supply_data.get('moment', ''),
+                "externalCode": external_code,
+                "positions": []
+            }
+            
+            # Добавляем позиции для жира и белка
+            if float(supply_data.get('fatKg', 0)) > 0:
+                supply['positions'].append({
+                    "quantity": float(supply_data.get('fatKg')),
+                    "price": float(supply_data.get('price', 0))*0.4/3.4 * 100*100,  # Конвертируем в копейки
+                    "assortment": {
+                        "meta": {
+                            "href": "https://api.moysklad.ru/api/remap/1.2/entity/product/87ed8bde-bfb9-11ef-0a80-18f3001bf494",
+                            "type": "product",
+                            "mediaType": "application/json"
+                        }
+                    }
+                })
+
+            if float(supply_data.get('proteinKg', 0)) > 0:
+                supply['positions'].append({
+                    "quantity": float(supply_data.get('proteinKg')),
+                    "price": float(supply_data.get('price', 0))*0.6/3.0 * 100*100,  # Конвертируем в копейки
+                    "assortment": {
+                        "meta": {
+                            "href": "https://api.moysklad.ru/api/remap/1.2/entity/product/58866606-bf73-11ef-0a80-0ca2001632c2",
+                            "type": "product",
+                            "mediaType": "application/json"
+                        }
+                    }
+                })
+
+            supplies.append(supply)
+            created_supplies.append({
+                "external_code": external_code,
+                "store_href": supply_data['store']['meta']['href'],
+                "counterparty_href": supply_data['agent']['meta']['href'],
+                "milk_mass": supply_data['mass'],
+                "fat_percent": supply_data['fat'],
+                "protein_percent": supply_data['protein'],
+                "fat_kg": supply_data['fatKg'],
+                "protein_kg": supply_data['proteinKg'],
+                "price": supply_data['price']
+            })
+
+        url = f'{MOYSKLAD_API_URL}/entity/supply'
         headers = {
             'Authorization': f'Bearer {token.access_token}',
-            'Accept-Encoding': 'gzip',
+            'Accept': 'application/json;charset=utf-8',
             'Content-Type': 'application/json'
         }
-
-        response = requests.post(
-            'https://api.moysklad.ru/api/remap/1.2/entity/supply',
-            headers=headers,
-            json=data
-        )
-
-        if response.status_code == 200:
-            app.logger.info('Приёмка успешно создана')
-            return jsonify(response.json())
+        
+        response = requests.post(url, headers=headers, json=supplies)
+        
+        if response.ok:
+            response_data = response.json()
+            for i, supply_info in enumerate(response_data):
+                supply = Supply(
+                    external_code=created_supplies[i]["external_code"],
+                    moysklad_id=supply_info["id"],
+                    user_id=user.id,
+                    store_href=created_supplies[i]['store_href'],
+                    counterparty_href=created_supplies[i]['counterparty_href'],
+                    milk_mass=created_supplies[i]['milk_mass'],
+                    fat_percent=created_supplies[i]['fat_percent'],
+                    protein_percent=created_supplies[i]['protein_percent'],
+                    fat_kg=created_supplies[i]['fat_kg'],
+                    protein_kg=created_supplies[i]['protein_kg'],
+                    price=created_supplies[i]['price']
+                )
+                db.session.add(supply)
+            db.session.commit()
+            
+            return jsonify({'message': 'Приёмки успешно созданы'}), 200
         else:
-            error_data = response.json()
-            app.logger.error(f'Ошибка при создании приёмки: {error_data}')
-            return jsonify(error_data), response.status_code
+            app.logger.error(f'Ошибка при создании приёмок: {response.status_code} {response.text}')
+            return jsonify({'error': f'Ошибка при создании приёмок: {response.status_code} {response.text}'}), response.status_code
 
     except Exception as e:
-        app.logger.error(f'Неожиданная ошибка при создании приёмки: {str(e)}')
-        return jsonify({
-            'error': str(e),
-            'code': 'InternalServerError'
-        }), 500
+        app.logger.error(f"Неизвестная ошибка: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/supplies/<string:supply_id>', methods=['PUT'])
 def update_supply(supply_id):
@@ -481,7 +561,7 @@ def update_supply(supply_id):
         }
 
         response = requests.put(
-            f'https://api.moysklad.ru/api/remap/1.2/entity/supply/{supply_id}',
+            f'{MOYSKLAD_API_URL}/entity/supply/{supply_id}',
             headers=headers,
             json=data
         )
@@ -528,7 +608,7 @@ def delete_supply(supply_id):
         }
 
         response = requests.delete(
-            f'https://api.moysklad.ru/api/remap/1.2/entity/supply/{supply_id}',
+            f'{MOYSKLAD_API_URL}/entity/supply/{supply_id}',
             headers=headers
         )
 
@@ -546,6 +626,184 @@ def delete_supply(supply_id):
             'error': str(e),
             'code': 'InternalServerError'
         }), 500
+
+@app.route('/api/counterparties', methods=['GET'])
+def get_counterparties():
+    logging.debug("Получение списка контрагентов из API МойСклад")
+    
+    user = db.session.get(User, session['user_id'])
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+
+    token = Token.query.filter_by(user_id=user.id).order_by(Token.created_at.desc()).first()
+
+    headers = {
+        'Authorization': f'Bearer {token.access_token}',
+        'Accept-Encoding': 'gzip'
+    }
+    
+    url = f"{MOYSKLAD_API_URL}/entity/counterparty"
+    response = requests.get(url, headers=headers)
+    
+    if response.status_code == 200:
+        counterparties = response.json()["rows"]
+        return jsonify([{"id": c["id"], "name": c["name"]} for c in counterparties])
+    else:
+        logging.error(f"Ошибка при получении контрагентов: {response.status_code} {response.text}")
+        return jsonify([])
+
+@app.route('/api/organizations', methods=['GET'])
+def get_organizations():
+    logging.debug("Получение списка организаций из API МойСклад")
+    
+    user = db.session.get(User, session['user_id'])
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+
+    token = Token.query.filter_by(user_id=user.id).order_by(Token.created_at.desc()).first()
+
+    headers = {
+        'Authorization': f'Bearer {token.access_token}',
+        'Accept-Encoding': 'gzip'
+    }
+    
+    url = f"{MOYSKLAD_API_URL}/entity/organization"
+    response = requests.get(url, headers=headers)
+    
+    if response.status_code == 200:
+        organizations = response.json()["rows"]
+        return jsonify([{"id": org["id"], "name": org["name"]} for org in organizations])
+    else:
+        logging.error(f"Ошибка при получении организаций: {response.status_code} {response.text}")
+        return jsonify([])
+
+@app.route('/api/warehouses', methods=['GET'])
+def get_warehouses():
+    logging.debug("Получение списка складов из API МойСклад")
+    
+    user = db.session.get(User, session['user_id'])
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+
+    token = Token.query.filter_by(user_id=user.id).order_by(Token.created_at.desc()).first()
+
+    headers = {
+        'Authorization': f'Bearer {token.access_token}',
+        'Accept-Encoding': 'gzip'
+    }
+    
+    url = f"{MOYSKLAD_API_URL}/entity/store"
+    response = requests.get(url, headers=headers)
+    
+    if response.status_code == 200:
+        warehouses = response.json()["rows"]
+        return jsonify([{"id": w["id"], "name": w["name"]} for w in warehouses])
+    else:
+        logging.error(f"Ошибка при получении складов: {response.status_code} {response.text}")
+        return jsonify([])
+
+@app.route('/api/products', methods=['GET'])
+def get_products():
+    try:
+        user = db.session.get(User, session['user_id'])
+        token = Token.query.filter_by(user_id=user.id).order_by(Token.created_at.desc()).first()
+
+        headers = {
+            'Authorization': f'Bearer {token.access_token}',
+            'Content-Type': 'application/json'
+        }
+        
+        url = f'{MOYSKLAD_API_URL}/entity/product?limit=100'
+        
+        response = requests.get(url, headers=headers)
+        
+        if response.status_code == 200:
+            products = response.json()['rows']
+            
+            result = []
+            for p in products:                
+                product = {
+                    'id': p['id'],
+                    'name': p.get('name', ''),
+                    'code': p.get('code', ''),
+                }
+                
+                if p.get('uom'):
+                    uom_url = p['uom']['meta']['href']
+                    uom_response = requests.get(uom_url, headers=headers)
+                    if uom_response.status_code == 200:
+                        product['uom'] = uom_response.json()['name']
+                    else:
+                        product['uom'] = ''
+                        print(f"Ошибка при получении единицы измерения: {uom_response.status_code} {uom_response.text}")
+                else:
+                    product['uom'] = ''
+                
+                result.append(product)
+            
+            return jsonify(result), 200
+        else:
+            error_msg = f"Ошибка при получении списка товаров: {response.status_code} {response.text}"  
+            app.logger.error(error_msg)
+            return jsonify({'error': error_msg}), response.status_code
+        
+    except Exception as e:
+        app.logger.error(f"Неизвестная ошибка: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/supplies/list', methods=['GET'])
+def get_filtered_supplies():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Необходима авторизация'}), 401
+
+    user = db.session.get(User, session['user_id'])
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+
+    store_href = request.args.get('store')
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+    
+    query = Supply.query.filter_by(user_id=user.id)
+    
+    if store_href:
+        query = query.filter_by(store_href=store_href)
+    
+    if start_date and end_date:
+        query = query.filter(Supply.created_at.between(start_date, end_date))
+    
+    supplies = query.all()
+    
+    token = Token.query.filter_by(user_id=user.id).order_by(Token.created_at.desc()).first()
+    headers = {
+        'Authorization': f'Bearer {token.access_token}',
+        'Accept': 'application/json;charset=utf-8'
+    }
+    
+    formatted_supplies = []
+    for supply in supplies:
+        # Получаем данные контрагента по его href
+        counterparty_response = requests.get(supply.counterparty_href, headers=headers)
+        if counterparty_response.ok:
+            counterparty_data = counterparty_response.json()
+            counterparty_name = counterparty_data['name']
+        else:
+            counterparty_name = 'Неизвестный контрагент'
+        
+        formatted_supply = {
+            'id': supply.id,
+            'counterparty_name': counterparty_name,
+            'milk_mass': supply.milk_mass,
+            'fat_percent': supply.fat_percent,
+            'protein_percent': supply.protein_percent,
+            'fat_kg': supply.fat_kg,
+            'protein_kg': supply.protein_kg,
+            'price': supply.price,
+            'created_at': supply.created_at.isoformat()
+        }
+        formatted_supplies.append(formatted_supply)
+    
+    return jsonify(formatted_supplies)
 
 if __name__ == '__main__':
     app.run(debug=True, host="0.0.0.0")

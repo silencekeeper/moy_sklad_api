@@ -160,13 +160,23 @@
             <h1>Список приёмок</h1>
             <a href="/supplies/new" class="button button-primary">Создать приёмку</a>
         </div>
+        <div class="form-group">
+            <label for="storeFilter">Фильтр по складу:</label>
+            <select id="storeFilter">
+                <option value="">Все склады</option>
+                {% for store in stores %}
+                <option value="{{ store.meta.href }}">{{ store.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
         <div id="supplies-list">
             <table>
                 <thead>
                     <tr>
                         <th>Номер</th>
                         <th>Организация</th>
-                        <th>Дата создания</th>
+                        <th>Склад</th>
+                        <th>Дата</th>
                         <th>Сумма</th>
                     </tr>
                 </thead>
@@ -211,14 +221,51 @@
     <script>
         let currentSupplyId = null;
 
-        // Загрузка списка приёмок при загрузке страницы
-        document.addEventListener('DOMContentLoaded', loadSupplies);
+        // Объединяем все обработчики загрузки DOM
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSupplies();
+            
+            // Находим кнопку добавления позиции
+            const addPositionButton = document.getElementById('addPosition');
+            if (addPositionButton) {
+                addPositionButton.addEventListener('click', addPosition);
+                console.log('Кнопка "Добавить позицию" найдена и обработчик добавлен');
+            } else {
+                console.log('Кнопка "Добавить позицию" не найдена');
+            }
 
-        function loadSupplies() {
-            fetch('/api/supplies')
+            console.log(document.getElementById('addPosition')); // Проверить, находится ли элемент
+            console.log(document.getElementById('positions')); // Проверить, находится ли tbody
+
+            document.getElementById('storeFilter').addEventListener('change', function() {
+                const selectedStoreHref = this.value;
+                loadSupplies(selectedStoreHref);
+            });
+        });
+
+        function loadSupplies(storeHref = '') {
+            const url = storeHref ? `/api/supplies?store=${encodeURIComponent(storeHref)}` : '/api/supplies';
+            
+            fetch(url)
                 .then(response => response.json())
-                .then(supplies => {
+                .then(data => {
+                    const supplies = data.supplies;
+                    const stores = data.stores;
+
+                    // Заполняем фильтр складов
+                    const storeFilter = document.getElementById('storeFilter');
+                    storeFilter.innerHTML = '<option value="">Все склады</option>';
+                    stores.forEach(store => {
+                        const option = document.createElement('option');
+                        option.value = store.meta.href;
+                        option.textContent = store.name;
+                        storeFilter.appendChild(option);
+                    });
+
+                    // Отображаем список приёмок
                     const tableBody = document.getElementById('supplies-table-body');
+                    tableBody.innerHTML = '';
+                    
                     supplies.forEach(supply => {
                         const row = document.createElement('tr');
                         const created = new Date(supply.created).toLocaleString('ru-RU');
@@ -229,6 +276,7 @@
                                    class="supply-link">${supply.name}</a>
                             </td>
                             <td>${supply.organization || '-'}</td>
+                            <td>${supply.store_name || '-'}</td>
                             <td>${created}</td>
                             <td>${supply.sum.toFixed(2)} ₽</td>
                         `;
@@ -238,7 +286,7 @@
                 .catch(error => {
                     console.error('Ошибка при загрузке приёмок:', error);
                     document.getElementById('supplies-table-body').innerHTML = 
-                        '<tr><td colspan="4" style="color: red;">Ошибка при загрузке данных</td></tr>';
+                        '<tr><td colspan="5" style="color: red;">Ошибка при загрузке данных</td></tr>';
                 });
         }
 
@@ -277,6 +325,10 @@
                                 <td>${supply.organization || '-'}</td>
                             </tr>
                             <tr>
+                                <th>Контрагент</th>
+                                <td>${supply.agent || '-'}</td>
+                            </tr>
+                            <tr>
                                 <th>Склад</th>
                                 <td>${supply.store || '-'}</td>
                             </tr>
@@ -301,7 +353,7 @@
                         <h3>Позиции:</h3>
                         ${supply.positions && supply.positions.length > 0 ? `
                             <table class="positions-table">
-                                <tr class="positions-header">
+                                <tr>
                                     <th>Наименование</th>
                                     <th>Количество</th>
                                     <th>Цена</th>
@@ -321,73 +373,21 @@
                                 `).join('')}
                             </table>
                         ` : '<p>Нет позиций</p>'}
+                        
+                        <button onclick="showSuppliesList()" class="back-button">← Назад к списку</button>
                     `;
                 })
                 .catch(error => {
                     console.error('Error loading supply details:', error);
                     detailsContent.innerHTML = `
-                        <div style="color: red; padding: 20px;">
+                        <div class="error-message">
                             <h3>Ошибка при загрузке данных</h3>
                             <p>${error.message}</p>
                             <button onclick="showSuppliesList()">Вернуться к списку</button>
                         </div>
-                    `;
+                    `
                 });
-        }
-
-        // Закрытие модального окна
-        document.querySelector('.close').onclick = function() {
-            document.getElementById('supplyModal').style.display = 'none';
-        }
-
-        async function editSupply(supplyId) {
-            try {
-                const response = await fetch(`/api/supplies/${supplyId}`);
-                const supply = await response.json();
-                
-                if (response.ok) {
-                    currentSupplyId = supplyId;
-                    document.getElementById('name').value = supply.name;
-                    document.getElementById('description').value = supply.description || '';
-                    document.getElementById('moment').value = supply.moment.slice(0, 16);
-                    document.getElementById('editForm').style.display = 'block';
-                }
-            } catch (error) {
-                console.error('Ошибка при получении данных приёмки:', error);
-            }
-        }
-
-        async function saveSupply() {
-            if (!currentSupplyId) return;
-
-            const data = {
-                name: document.getElementById('name').value,
-                description: document.getElementById('description').value,
-                moment: document.getElementById('moment').value
-            };
-
-            try {
-                const response = await fetch(`/api/supplies/${currentSupplyId}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(data)
-                });
-
-                if (response.ok) {
-                    document.getElementById('editForm').style.display = 'none';
-                    loadSupplies();
-                }
-            } catch (error) {
-                console.error('Ошибка при сохранении приёмки:', error);
-            }
-        }
-
-        function cancelEdit() {
-            currentSupplyId = null;
-            document.getElementById('editForm').style.display = 'none';
         }
     </script>
 </body>
-</html> 
+</html>

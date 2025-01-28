@@ -1,0 +1,534 @@
+{
+  "meta" : {
+    "href" : "https://api.moysklad.ru/api/remap/1.2/entity/product/87ed8bde-bfb9-11ef-0a80-18f3001bf494",
+    "metadataHref" : "https://api.moysklad.ru/api/remap/1.2/entity/product/metadata",
+    "type" : "product",
+    "mediaType" : "application/json",
+    "uuidHref" : "https://online.moysklad.ru/app/#good/edit?id=87ed841d-bfb9-11ef-0a80-18f3001bf492"
+  },
+  "id" : "87ed8bde-bfb9-11ef-0a80-18f3001bf494",
+  "accountId" : "0e681fe0-60cc-11ec-0a80-03a10001aa02",
+  "owner" : {
+    "meta" : {
+      "href" : "https://api.moysklad.ru/api/remap/1.2/entity/employee/0e69214a-60cc-11ec-0a80-0cc3003e130c",
+      "metadataHref" : "https://api.moysklad.ru/api/remap/1.2/entity/employee/metadata",
+      "type" : "employee",
+      "mediaType" : "application/json",
+      "uuidHref" : "https://online.moysklad.ru/app/#employee/edit?id=0e69214a-60cc-11ec-0a80-0cc3003e130c"
+    }
+  },
+  "shared" : true,
+  "group" : {
+    "meta" : {
+      "href" : "https://api.moysklad.ru/api/remap/1.2/entity/group/0e68b65a-60cc-11ec-0a80-03a10001aa03",
+      "metadataHref" : "https://api.moysklad.ru/api/remap/1.2/entity/group/metadata",
+      "type" : "group",
+      "mediaType" : "application/json"
+    }
+  },
+  "updated" : "2024-12-25 21:39:56.019",
+  "name" : "Жир молочный",
+  "code" : "00013",
+  "externalCode" : "m3cNJcsAiW9m8Ki4WUvlV0",
+  "archived" : false,
+  "pathName" : "Сырьё",
+  "productFolder" : {
+    "meta" : {
+      "href" : "https://api.moysklad.ru/api/remap/1.2/entity/productfolder/d77558e4-bfaf-11ef-0a80-09a0001b8ecb",
+      "metadataHref" : "https://api.moysklad.ru/api/remap/1.2/entity/productfolder/metadata",
+      "type" : "productfolder",
+      "mediaType" : "application/json",
+      "uuidHref" : "https://online.moysklad.ru/app/#good/edit?id=d77558e4-bfaf-11ef-0a80-09a0001b8ecb"
+    }
+  },
+  "effectiveVat" : 10,
+  "effectiveVatEnabled" : true,
+  "vat" : 10,
+  "vatEnabled" : true,
+  "useParentVat" : false,
+  "uom" : {
+    "meta" : {
+      "href" : "https://api.moysklad.ru/api/remap/1.2/entity/uom/2ec1170c-3f69-4409-87bb-c68e0011b275",
+      "metadataHref" : "https://api.moysklad.ru/api/remap/1.2/entity/uom/metadata",
+      "type" : "uom",
+      "mediaType" : "application/json"
+    }
+  },
+  "images" : {
+    "meta" : {
+      "href" : "https://api.moysklad.ru/api/remap/1.2/entity/product/87ed8bde-bfb9-11ef-0a80-18f3001bf494/images",
+      "type" : "image",
+      "mediaType" : "application/json",
+      "size" : 0,
+      "limit" : 1000,
+      "offset" : 0
+    }
+  },
+  "minPrice" : {
+    "value" : 52900.0,
+    "currency" : {
+      "meta" : {
+        "href" : "https://api.moysklad.ru/api/remap/1.2/entity/currency/0e8572c9-60cc-11ec-0a80-0cc3003e1354",
+        "metadataHref" : "https://api.moysklad.ru/api/remap/1.2/entity/currency/metadata",
+        "type" : "currency",
+        "mediaType" : "application/json",
+        "uuidHref" : "https://online.moysklad.ru/app/#currency/edit?id=0e8572c9-60cc-11ec-0a80-0cc3003e1354"
+      }
+    }
+  },
+  "salePrices" : [ {
+    "value" : 52900.0,
+    "currency" : {
+      "meta" : {
+        "href" : "https://api.moysklad.ru/api/remap/1.2/entity/currency/0e8572c9-60cc-11ec-0a80-0cc3003e1354",
+        "metadataHref" : "https://api.moysklad.ru/api/remap/1.2/entity/currency/metadata",
+        "type" : "currency",
+        "mediaType" : "application/json",
+        "uuidHref" : "https://online.moysklad.ru/app/#currency/edit?id=0e8572c9-60cc-11ec-0a80-0cc3003e1354"
+      }
+    },
+    "priceType" : {
+      "meta" : {
+        "href" : "https://api.moysklad.ru/api/remap/1.2/context/companysettings/pricetype/0e868023-60cc-11ec-0a80-0cc3003e1356",
+        "type" : "pricetype",
+        "mediaType" : "application/json"
+      },
+      "id" : "0e868023-60cc-11ec-0a80-0cc3003e1356",
+      "name" : "Цена продажи",
+      "externalCode" : "cbcf493b-55bc-11d9-848a-00112f43529a"
+    }
+  } ],
+  "buyPrice" : {
+    "value" : 52900.0,
+    "currency" : {
+      "meta" : {
+        "href" : "https://api.moysklad.ru/api/remap/1.2/entity/currency/0e8572c9-60cc-11ec-0a80-0cc3003e1354",
+        "metadataHref" : "https://api.moysklad.ru/api/remap/1.2/entity/currency/metadata",
+        "type" : "currency",
+        "mediaType" : "application/json",
+        "uuidHref" : "https://online.moysklad.ru/app/#currency/edit?id=0e8572c9-60cc-11ec-0a80-0cc3003e1354"
+      }
+    }
+  },
+  "barcodes" : [ {
+    "ean13" : "2000000000268"
+  } ],
+  "paymentItemType" : "GOOD",
+  "discountProhibited" : false,
+  "weight" : 0.0,
+  "volume" : 0.0,
+  "variantsCount" : 0,
+  "isSerialTrackable" : false,
+  "files" : {
+    "meta" : {
+      "href" : "https://api.moysklad.ru/api/remap/1.2/entity/product/87ed8bde-bfb9-11ef-0a80-18f3001bf494/files",
+      "type" : "files",
+      "mediaType" : "application/json",
+      "size" : 0,
+      "limit" : 1000,
+      "offset" : 0
+    }
+  },
+  "trackingType" : "NOT_TRACKED"
+}, {
+  "meta" : {
+    "href" : "https://api.moysklad.ru/api/remap/1.2/entity/product/a5623ead-bfb9-11ef-0a80-1654001bdea7",
+    "metadataHref" : "https://api.moysklad.ru/api/remap/1.2/entity/product/metadata",
+    "type" : "product",
+    "mediaType" : "application/json",
+    "uuidHref" : "https://online.moysklad.ru/app/#good/edit?id=a56234e7-bfb9-11ef-0a80-1654001bdea5"
+  },
+  "id" : "a5623ead-bfb9-11ef-0a80-1654001bdea7",
+  "accountId" : "0e681fe0-60cc-11ec-0a80-03a10001aa02",
+  "owner" : {
+    "meta" : {
+      "href" : "https://api.moysklad.ru/api/remap/1.2/entity/employee/0e69214a-60cc-11ec-0a80-0cc3003e130c",
+      "metadataHref" : "https://api.moysklad.ru/api/remap/1.2/entity/employee/metadata",
+      "type" : "employee",
+      "mediaType" : "application/json",
+      "uuidHref" : "https://online.moysklad.ru/app/#employee/edit?id=0e69214a-60cc-11ec-0a80-0cc3003e130c"
+    }
+  },
+  "shared" : true,
+  "group" : {
+    "meta" : {
+      "href" : "https://api.moysklad.ru/api/remap/1.2/entity/group/0e68b65a-60cc-11ec-0a80-03a10001aa03",
+      "metadataHref" : "https://api.moysklad.ru/api/remap/1.2/entity/group/metadata",
+      "type" : "group",
+      "mediaType" : "application/json"
+    }
+  },
+  "updated" : "2024-12-25 21:39:56.024",
+  "name" : "Белок молочный",
+  "code" : "00015",
+  "externalCode" : "r759MZoEgXCukhSo8Oa7-3",
+  "archived" : false,
+  "pathName" : "Сырьё",
+  "productFolder" : {
+    "meta" : {
+      "href" : "https://api.moysklad.ru/api/remap/1.2/entity/productfolder/d77558e4-bfaf-11ef-0a80-09a0001b8ecb",
+      "metadataHref" : "https://api.moysklad.ru/api/remap/1.2/entity/productfolder/metadata",
+      "type" : "productfolder",
+      "mediaType" : "application/json",
+      "uuidHref" : "https://online.moysklad.ru/app/#good/edit?id=d77558e4-bfaf-11ef-0a80-09a0001b8ecb"
+    }
+  },
+  "effectiveVat" : 10,
+  "effectiveVatEnabled" : true,
+  "vat" : 10,
+  "vatEnabled" : true,
+  "useParentVat" : false,
+  "uom" : {
+    "meta" : {
+      "href" : "https://api.moysklad.ru/api/remap/1.2/entity/uom/2ec1170c-3f69-4409-87bb-c68e0011b275",
+      "metadataHref" : "https://api.moysklad.ru/api/remap/1.2/entity/uom/metadata",
+      "type" : "uom",
+      "mediaType" : "application/json"
+    }
+  },
+  "images" : {
+    "meta" : {
+      "href" : "https://api.moysklad.ru/api/remap/1.2/entity/product/a5623ead-bfb9-11ef-0a80-1654001bdea7/images",
+      "type" : "image",
+      "mediaType" : "application/json",
+      "size" : 0,
+      "limit" : 1000,
+      "offset" : 0
+    }
+  },
+  "minPrice" : {
+    "value" : 90000.0,
+    "currency" : {
+      "meta" : {
+        "href" : "https://api.moysklad.ru/api/remap/1.2/entity/currency/0e8572c9-60cc-11ec-0a80-0cc3003e1354",
+        "metadataHref" : "https://api.moysklad.ru/api/remap/1.2/entity/currency/metadata",
+        "type" : "currency",
+        "mediaType" : "application/json",
+        "uuidHref" : "https://online.moysklad.ru/app/#currency/edit?id=0e8572c9-60cc-11ec-0a80-0cc3003e1354"
+      }
+    }
+  },
+  "salePrices" : [ {
+    "value" : 90000.0,
+    "currency" : {
+      "meta" : {
+        "href" : "https://api.moysklad.ru/api/remap/1.2/entity/currency/0e8572c9-60cc-11ec-0a80-0cc3003e1354",
+        "metadataHref" : "https://api.moysklad.ru/api/remap/1.2/entity/currency/metadata",
+        "type" : "currency",
+        "mediaType" : "application/json",
+        "uuidHref" : "https://online.moysklad.ru/app/#currency/edit?id=0e8572c9-60cc-11ec-0a80-0cc3003e1354"
+      }
+    },
+    "priceType" : {
+      "meta" : {
+        "href" : "https://api.moysklad.ru/api/remap/1.2/context/companysettings/pricetype/0e868023-60cc-11ec-0a80-0cc3003e1356",
+        "type" : "pricetype",
+        "mediaType" : "application/json"
+      },
+      "id" : "0e868023-60cc-11ec-0a80-0cc3003e1356",
+      "name" : "Цена продажи",
+      "externalCode" : "cbcf493b-55bc-11d9-848a-00112f43529a"
+    }
+  } ],
+  "buyPrice" : {
+    "value" : 90000.0,
+    "currency" : {
+      "meta" : {
+        "href" : "https://api.moysklad.ru/api/remap/1.2/entity/currency/0e8572c9-60cc-11ec-0a80-0cc3003e1354",
+        "metadataHref" : "https://api.moysklad.ru/api/remap/1.2/entity/currency/metadata",
+        "type" : "currency",
+        "mediaType" : "application/json",
+        "uuidHref" : "https://online.moysklad.ru/app/#currency/edit?id=0e8572c9-60cc-11ec-0a80-0cc3003e1354"
+      }
+    }
+  },
+  "barcodes" : [ {
+    "ean13" : "2000000000282"
+  } ],
+  "paymentItemType" : "GOOD",
+  "discountProhibited" : false,
+  "weight" : 0.0,
+  "volume" : 0.0,
+  "variantsCount" : 0,
+  "isSerialTrackable" : false,
+  "files" : {
+    "meta" : {
+      "href" : "https://api.moysklad.ru/api/remap/1.2/entity/product/a5623ead-bfb9-11ef-0a80-1654001bdea7/files",
+      "type" : "files",
+      "mediaType" : "application/json",
+      "size" : 0,
+      "limit" : 1000,
+      "offset" : 0
+    }
+  },
+  "trackingType" : "NOT_TRACKED"
+}, {
+  "meta" : {
+    "href" : "https://api.moysklad.ru/api/remap/1.2/entity/store/0e854328-60cc-11ec-0a80-0cc3003e134f",
+    "metadataHref" : "https://api.moysklad.ru/api/remap/1.2/entity/store/metadata",
+    "type" : "store",
+    "mediaType" : "application/json",
+    "uuidHref" : "https://online.moysklad.ru/app/#warehouse/edit?id=0e854328-60cc-11ec-0a80-0cc3003e134f"
+  },
+  "id" : "0e854328-60cc-11ec-0a80-0cc3003e134f",
+  "accountId" : "0e681fe0-60cc-11ec-0a80-03a10001aa02",
+  "owner" : {
+    "meta" : {
+      "href" : "https://api.moysklad.ru/api/remap/1.2/entity/employee/0e69214a-60cc-11ec-0a80-0cc3003e130c",
+      "metadataHref" : "https://api.moysklad.ru/api/remap/1.2/entity/employee/metadata",
+      "type" : "employee",
+      "mediaType" : "application/json",
+      "uuidHref" : "https://online.moysklad.ru/app/#employee/edit?id=0e69214a-60cc-11ec-0a80-0cc3003e130c"
+    }
+  },
+  "shared" : false,
+  "group" : {
+    "meta" : {
+      "href" : "https://api.moysklad.ru/api/remap/1.2/entity/group/0e68b65a-60cc-11ec-0a80-03a10001aa03",
+      "metadataHref" : "https://api.moysklad.ru/api/remap/1.2/entity/group/metadata",
+      "type" : "group",
+      "mediaType" : "application/json"
+    }
+  },
+  "updated" : "2024-12-21 18:34:28.649",
+  "name" : "Склад готовой продукции",
+  "externalCode" : "77ZWOVbYhob8IGPsO3-Hj2",
+  "archived" : false,
+  "pathName" : "",
+  "address" : "433404, Россия, Ульяновская обл, Чердаклинский р-н, село Богдашкино",
+  "addressFull" : {
+    "postalCode" : "433404",
+    "country" : {
+      "meta" : {
+        "href" : "https://api.moysklad.ru/api/remap/1.2/entity/country/9df7c2c3-7782-4c5c-a8ed-1102af611608",
+        "metadataHref" : "https://api.moysklad.ru/api/remap/1.2/entity/country/metadata",
+        "type" : "country",
+        "mediaType" : "application/json",
+        "uuidHref" : "https://online.moysklad.ru/app/#country/edit?id=9df7c2c3-7782-4c5c-a8ed-1102af611608"
+      }
+    },
+    "region" : {
+      "meta" : {
+        "href" : "https://api.moysklad.ru/api/remap/1.2/entity/region/00000000-0000-0000-0000-000000000073",
+        "metadataHref" : "https://api.moysklad.ru/api/remap/1.2/entity/region/metadata",
+        "type" : "region",
+        "mediaType" : "application/json"
+      }
+    },
+    "city" : "Чердаклинский р-н, село Богдашкино"
+  },
+  "zones" : {
+    "meta" : {
+      "href" : "https://api.moysklad.ru/api/remap/1.2/entity/store/0e854328-60cc-11ec-0a80-0cc3003e134f/zones",
+      "type" : "storezone",
+      "mediaType" : "application/json",
+      "size" : 0,
+      "limit" : 1000,
+      "offset" : 0
+    }
+  },
+  "slots" : {
+    "meta" : {
+      "href" : "https://api.moysklad.ru/api/remap/1.2/entity/store/0e854328-60cc-11ec-0a80-0cc3003e134f/slots",
+      "type" : "slot",
+      "mediaType" : "application/json",
+      "size" : 0,
+      "limit" : 1000,
+      "offset" : 0
+    }
+  }
+}, {
+  "meta" : {
+    "href" : "https://api.moysklad.ru/api/remap/1.2/entity/counterparty/046d8aec-c2cf-11ef-0a80-07fe00119793",
+    "metadataHref" : "https://api.moysklad.ru/api/remap/1.2/entity/counterparty/metadata",
+    "type" : "counterparty",
+    "mediaType" : "application/json",
+    "uuidHref" : "https://online.moysklad.ru/app/#company/edit?id=046d8aec-c2cf-11ef-0a80-07fe00119793"
+  },
+  "id" : "046d8aec-c2cf-11ef-0a80-07fe00119793",
+  "accountId" : "0e681fe0-60cc-11ec-0a80-03a10001aa02",
+  "owner" : {
+    "meta" : {
+      "href" : "https://api.moysklad.ru/api/remap/1.2/entity/employee/0e69214a-60cc-11ec-0a80-0cc3003e130c",
+      "metadataHref" : "https://api.moysklad.ru/api/remap/1.2/entity/employee/metadata",
+      "type" : "employee",
+      "mediaType" : "application/json",
+      "uuidHref" : "https://online.moysklad.ru/app/#employee/edit?id=0e69214a-60cc-11ec-0a80-0cc3003e130c"
+    }
+  },
+  "shared" : false,
+  "group" : {
+    "meta" : {
+      "href" : "https://api.moysklad.ru/api/remap/1.2/entity/group/0e68b65a-60cc-11ec-0a80-03a10001aa03",
+      "metadataHref" : "https://api.moysklad.ru/api/remap/1.2/entity/group/metadata",
+      "type" : "group",
+      "mediaType" : "application/json"
+    }
+  },
+  "updated" : "2025-01-22 15:13:19.779",
+  "name" : "АО \"ТОЛЬЯТТИСОЛЬ\"",
+  "externalCode" : "PsnF3UD1g5Tkxerr0OdKl1",
+  "archived" : false,
+  "created" : "2024-12-25 17:46:26.000",
+  "companyType" : "legal",
+  "legalTitle" : "АКЦИОНЕРНОЕ ОБЩЕСТВО \"ТОЛЬЯТТИСОЛЬ\"",
+  "legalAddress" : "445012, Россия, Самарская обл, г Тольятти, ул Коммунистическая, 106",
+  "legalAddressFull" : {
+    "postalCode" : "445012",
+    "country" : {
+      "meta" : {
+        "href" : "https://api.moysklad.ru/api/remap/1.2/entity/country/9df7c2c3-7782-4c5c-a8ed-1102af611608",
+        "metadataHref" : "https://api.moysklad.ru/api/remap/1.2/entity/country/metadata",
+        "type" : "country",
+        "mediaType" : "application/json",
+        "uuidHref" : "https://online.moysklad.ru/app/#country/edit?id=9df7c2c3-7782-4c5c-a8ed-1102af611608"
+      }
+    },
+    "region" : {
+      "meta" : {
+        "href" : "https://api.moysklad.ru/api/remap/1.2/entity/region/00000000-0000-0000-0000-000000000063",
+        "metadataHref" : "https://api.moysklad.ru/api/remap/1.2/entity/region/metadata",
+        "type" : "region",
+        "mediaType" : "application/json"
+      }
+    },
+    "city" : "г Тольятти",
+    "street" : "ул Коммунистическая",
+    "house" : "106"
+  },
+  "inn" : "6320004887",
+  "kpp" : "632401001",
+  "ogrn" : "1026302003496",
+  "okpo" : "11034060",
+  "accounts" : {
+    "meta" : {
+      "href" : "https://api.moysklad.ru/api/remap/1.2/entity/counterparty/046d8aec-c2cf-11ef-0a80-07fe00119793/accounts",
+      "type" : "account",
+      "mediaType" : "application/json",
+      "size" : 1,
+      "limit" : 1000,
+      "offset" : 0
+    }
+  },
+  "tags" : [ ],
+  "contactpersons" : {
+    "meta" : {
+      "href" : "https://api.moysklad.ru/api/remap/1.2/entity/counterparty/046d8aec-c2cf-11ef-0a80-07fe00119793/contactpersons",
+      "type" : "contactperson",
+      "mediaType" : "application/json",
+      "size" : 0,
+      "limit" : 1000,
+      "offset" : 0
+    }
+  },
+  "notes" : {
+    "meta" : {
+      "href" : "https://api.moysklad.ru/api/remap/1.2/entity/counterparty/046d8aec-c2cf-11ef-0a80-07fe00119793/notes",
+      "type" : "note",
+      "mediaType" : "application/json",
+      "size" : 0,
+      "limit" : 1000,
+      "offset" : 0
+    }
+  },
+  "state" : {
+    "meta" : {
+      "href" : "https://api.moysklad.ru/api/remap/1.2/entity/counterparty/metadata/states/0e9bce97-60cc-11ec-0a80-0cc3003e137a",
+      "metadataHref" : "https://api.moysklad.ru/api/remap/1.2/entity/counterparty/metadata",
+      "type" : "state",
+      "mediaType" : "application/json"
+    }
+  },
+  "salesAmount" : 0.0,
+  "files" : {
+    "meta" : {
+      "href" : "https://api.moysklad.ru/api/remap/1.2/entity/counterparty/046d8aec-c2cf-11ef-0a80-07fe00119793/files",
+      "type" : "files",
+      "mediaType" : "application/json",
+      "size" : 0,
+      "limit" : 1000,
+      "offset" : 0
+    }
+  }
+}, {
+  "meta" : {
+    "href" : "https://api.moysklad.ru/api/remap/1.2/entity/organization/0e840a9d-60cc-11ec-0a80-0cc3003e134c",
+    "metadataHref" : "https://api.moysklad.ru/api/remap/1.2/entity/organization/metadata",
+    "type" : "organization",
+    "mediaType" : "application/json",
+    "uuidHref" : "https://online.moysklad.ru/app/#mycompany/edit?id=0e840a9d-60cc-11ec-0a80-0cc3003e134c"
+  },
+  "id" : "0e840a9d-60cc-11ec-0a80-0cc3003e134c",
+  "accountId" : "0e681fe0-60cc-11ec-0a80-03a10001aa02",
+  "owner" : {
+    "meta" : {
+      "href" : "https://api.moysklad.ru/api/remap/1.2/entity/employee/0e69214a-60cc-11ec-0a80-0cc3003e130c",
+      "metadataHref" : "https://api.moysklad.ru/api/remap/1.2/entity/employee/metadata",
+      "type" : "employee",
+      "mediaType" : "application/json",
+      "uuidHref" : "https://online.moysklad.ru/app/#employee/edit?id=0e69214a-60cc-11ec-0a80-0cc3003e130c"
+    }
+  },
+  "shared" : true,
+  "group" : {
+    "meta" : {
+      "href" : "https://api.moysklad.ru/api/remap/1.2/entity/group/0e68b65a-60cc-11ec-0a80-03a10001aa03",
+      "metadataHref" : "https://api.moysklad.ru/api/remap/1.2/entity/group/metadata",
+      "type" : "group",
+      "mediaType" : "application/json"
+    }
+  },
+  "updated" : "2025-01-22 15:13:15.705",
+  "name" : "ООО ТПК \"МОЛОКОПРОДУКТ\"",
+  "externalCode" : "VSvfoWnng4ul4ab5CyfZ23",
+  "archived" : false,
+  "created" : "2021-12-19 16:03:28.644",
+  "companyType" : "legal",
+  "legalTitle" : "ОБЩЕСТВО С ОГРАНИЧЕННОЙ ОТВЕТСТВЕННОСТЬЮ ТОРГОВО-ПРОМЫШЛЕННАЯ КОМПАНИЯ \"МОЛОКОПРОДУКТ\"",
+  "legalAddress" : "432072, Россия, Ульяновская обл, г Ульяновск, проезд Инженерный 1-й, 13",
+  "legalAddressFull" : {
+    "postalCode" : "432072",
+    "country" : {
+      "meta" : {
+        "href" : "https://api.moysklad.ru/api/remap/1.2/entity/country/9df7c2c3-7782-4c5c-a8ed-1102af611608",
+        "metadataHref" : "https://api.moysklad.ru/api/remap/1.2/entity/country/metadata",
+        "type" : "country",
+        "mediaType" : "application/json",
+        "uuidHref" : "https://online.moysklad.ru/app/#country/edit?id=9df7c2c3-7782-4c5c-a8ed-1102af611608"
+      }
+    },
+    "region" : {
+      "meta" : {
+        "href" : "https://api.moysklad.ru/api/remap/1.2/entity/region/00000000-0000-0000-0000-000000000073",
+        "metadataHref" : "https://api.moysklad.ru/api/remap/1.2/entity/region/metadata",
+        "type" : "region",
+        "mediaType" : "application/json"
+      }
+    },
+    "city" : "г Ульяновск",
+    "street" : "проезд Инженерный 1-й",
+    "house" : "13"
+  },
+  "inn" : "7323007694",
+  "kpp" : "732801001",
+  "ogrn" : "1057310006973",
+  "okpo" : "25493417",
+  "email" : "itg73@mail.ru",
+  "accounts" : {
+    "meta" : {
+      "href" : "https://api.moysklad.ru/api/remap/1.2/entity/organization/0e840a9d-60cc-11ec-0a80-0cc3003e134c/accounts",
+      "type" : "account",
+      "mediaType" : "application/json",
+      "size" : 3,
+      "limit" : 1000,
+      "offset" : 0
+    }
+  },
+  "isEgaisEnable" : false,
+  "payerVat" : true,
+  "director" : "Фаизов Руслан Ренатович",
+  "directorPosition" : "Директор",
+  "chiefAccountant" : "Фаизов Руслан Ренатович",
+  "trackingContractDate" : "2021-05-16 00:00:00.000",
+  "trackingContractNumber" : "МП_86843/21"
+}

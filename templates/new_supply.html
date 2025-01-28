@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Создать новую приёмку</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f8f9fa;
+        }
+        .readonly-input {
+            background-color: #e9ecef;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Создать новую приёмку</h1>
+        <form id="newSupplyForm">
+            <div class="form-group">
+                <label for="moment">Дата приёмки:</label>
+                <input type="datetime-local" id="moment" required>
+            </div>
+            <div class="form-group">
+                <label for="organization">Организация:</label>
+                <select id="organization" required>
+                    <option value="">Выберите организацию</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="store">Склад:</label>
+                <select id="store" required>
+                    <option value="">Выберите склад</option>
+                </select>
+            </div>
+
+            <h2>Позиции</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Контрагент</th>
+                        <th>Наименование</th>
+                        <th>Масса, кг</th>
+                        <th>Жир, %</th>
+                        <th>Ж/кг</th>
+                        <th>Белок, %</th>
+                        <th>Б/кг</th>
+                        <th>Цена, руб</th>
+                        <th>НДС</th>
+                        <th>Действия</th>
+                    </tr>
+                </thead>
+                <tbody id="positions">
+                </tbody>
+            </table>
+            
+            <button type="button" id="addPosition">Добавить позицию</button>
+            <button type="submit">Создать приёмку</button>
+        </form>
+    </div>
+
+    <script>
+        async function fetchData(url, target) {
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                console.log('Полученные данные:', data);
+                
+                // Получаем DOM элемент, если передана строка
+                const selectElement = typeof target === 'string' 
+                    ? document.querySelector(target)  // Используем querySelector вместо getElementById
+                    : target;
+                    
+                if (!selectElement) {
+                    console.error('Элемент не найден:', target);
+                    return;
+                }
+                
+                if (Array.isArray(data)) {
+                    selectElement.innerHTML = `
+                        <option value="">Выберите значение</option>
+                        ${data.map(item => `
+                            <option value="${item.id}">${item.name}</option>
+                        `).join('')}
+                    `;
+                } else {
+                    console.error('Получены некорректные данные:', data);
+                }
+            } catch (error) {
+                console.error('Ошибка при загрузке данных:', error);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Загружаем начальные данные
+            fetchData('/api/organizations', '#organization');
+            fetchData('/api/warehouses', '#store');
+            
+            // Обработчик добавления позиции
+            document.getElementById('addPosition').addEventListener('click', function() {
+                const tbody = document.getElementById('positions');
+                const tr = document.createElement('tr');
+                
+                // Генерируем уникальный ID для select контрагента
+                const counterpartyId = `counterparty_${Date.now()}`;
+                
+                tr.innerHTML = `
+                    <td>
+                        <select id="${counterpartyId}" required>
+                            <option value="">Выберите контрагента</option>
+                        </select>
+                    </td>
+                    <td>
+                        <select class="product" required>
+                            <option value="">Выберите тип</option>
+                            <option value="Обрат">Обрат</option>
+                            <option value="Молоко сырое">Молоко сырое</option>
+                        </select>
+                    </td>
+                    <td><input type="number" class="mass" min="0" max="999999" step="1" required></td>
+                    <td><input type="number" class="fat" min="0" max="5" step="0.01" required></td>
+                    <td><input type="number" class="fat-kg" readonly class="readonly-input"></td>
+                    <td><input type="number" class="protein" min="0" max="5" step="0.01" required></td>
+                    <td><input type="number" class="protein-kg" readonly class="readonly-input"></td>
+                    <td><input type="number" class="price" min="0" step="0.01" required></td>
+                    <td><input type="checkbox" class="vat"></td>
+                    <td><button type="button" onclick="this.parentElement.parentElement.remove()">Удалить</button></td>
+                `;
+
+                tbody.appendChild(tr);
+
+                // После добавления строки в DOM загружаем данные контрагентов
+                fetchData('/api/counterparties', `#${counterpartyId}`);
+
+                // Добавление обработчиков для расчета
+                const massInput = tr.querySelector('.mass');
+                const fatInput = tr.querySelector('.fat');
+                const fatKgInput = tr.querySelector('.fat-kg');
+                const proteinInput = tr.querySelector('.protein');
+                const proteinKgInput = tr.querySelector('.protein-kg');
+
+                function calculateValues() {
+                    const mass = parseFloat(massInput.value) || 0;
+                    const fat = parseFloat(fatInput.value) || 0;
+                    const protein = parseFloat(proteinInput.value) || 0;
+
+                    fatKgInput.value = (mass * fat / 100).toFixed(2);
+                    proteinKgInput.value = (mass * protein / 100).toFixed(2);
+                }
+
+                massInput.addEventListener('input', calculateValues);
+                fatInput.addEventListener('input', calculateValues);
+                proteinInput.addEventListener('input', calculateValues);
+            });
+
+            // Добавляем обработчик отправки формы
+            document.getElementById('newSupplyForm').addEventListener('submit', async function(event) {
+                event.preventDefault();
+                
+                const momentInput = document.getElementById('moment');
+                const organizationSelect = document.getElementById('organization');
+                const storeSelect = document.getElementById('store');
+                
+                if (!momentInput || !organizationSelect || !storeSelect) {
+                    console.error('Не найдены обязательные поля формы');
+                    alert('Ошибка: не найдены обязательные поля формы');
+                    return;
+                }
+
+                if (!momentInput.value || !organizationSelect.value || !storeSelect.value) {
+                    alert('Пожалуйста, заполните все обязательные поля');
+                    return;
+                }
+
+                const positions = document.querySelectorAll('#positions tr');
+                if (positions.length === 0) {
+                    alert('Добавьте хотя бы одну позицию');
+                    return;
+                }
+
+                const suppliesByCounterparty = {};
+
+                positions.forEach((tr, index) => {
+                    const counterpartySelect = tr.querySelector('select[id^="counterparty_"]');
+                    const productSelect = tr.querySelector('.product');
+                    const massInput = tr.querySelector('.mass');
+                    const fatInput = tr.querySelector('.fat');
+                    const fatKgInput = tr.querySelector('.fat-kg');
+                    const proteinInput = tr.querySelector('.protein');
+                    const proteinKgInput = tr.querySelector('.protein-kg');
+                    const priceInput = tr.querySelector('.price');
+                    const vatCheckbox = tr.querySelector('.vat');
+
+                    const counterpartyId = counterpartySelect.value;
+                    const counterpartyName = counterpartySelect.options[counterpartySelect.selectedIndex].text;
+                    
+                    suppliesByCounterparty[counterpartyId] = {
+                        moment: formatDateTime(momentInput.value),
+                        organization: {
+                            meta: {
+                                href: `https://api.moysklad.ru/api/remap/1.2/entity/organization/${organizationSelect.value}`,
+                                type: "organization",
+                                mediaType: "application/json"
+                            }
+                        },
+                        store: {
+                            meta: {
+                                href: `https://api.moysklad.ru/api/remap/1.2/entity/store/${storeSelect.value}`,
+                                type: "store",
+                                mediaType: "application/json"
+                            }
+                        },
+                        agent: {
+                            meta: {
+                                href: `https://api.moysklad.ru/api/remap/1.2/entity/counterparty/${counterpartyId}`,
+                                type: "counterparty",
+                                mediaType: "application/json"
+                            }
+                        },
+                        vatEnabled: vatCheckbox.checked,
+                        vatIncluded: vatCheckbox.checked,
+                        mass: parseFloat(massInput.value),
+                        fat: parseFloat(fatInput.value),
+                        fatKg: parseFloat(fatKgInput.value),
+                        protein: parseFloat(proteinInput.value),
+                        proteinKg: parseFloat(proteinKgInput.value),
+                        price: parseFloat(priceInput.value)
+                    };
+                });
+
+                // Логируем данные для проверки
+                Object.entries(suppliesByCounterparty).forEach(([counterpartyId, supplyData], index) => {
+                    console.log(`\nПриёмка #${index + 1} (Контрагент ID: ${counterpartyId}):`);
+                    console.log('Дата:', supplyData.moment);
+                    console.log('Организация:', supplyData.organization.meta.href);
+                    console.log('Склад:', supplyData.store.meta.href);
+                    console.log('Контрагент:', supplyData.agent.meta.href);
+                    console.log('Масса:', supplyData.mass);
+                    console.log('Жир %:', supplyData.fat);
+                    console.log('Жир кг:', supplyData.fatKg);
+                    console.log('Белок %:', supplyData.protein);
+                    console.log('Белок кг:', supplyData.proteinKg);
+                    console.log('Цена:', supplyData.price);
+                    console.log('НДС включен:', supplyData.vatEnabled);
+                });
+
+                try {
+                    // Отправляем весь массив приёмок одним запросом
+                    const response = await fetch('/api/supplies', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json;charset=utf-8'
+                        },
+                        body: JSON.stringify(Object.values(suppliesByCounterparty))
+                    });
+
+                    if (response.ok) {
+                        alert('Приёмки успешно созданы!');
+                        window.location.href = '/supplies';
+                    } else {
+                        const error = await response.json();
+                        alert('Ошибка при создании приёмок: ' + (error.error || 'Неизвестная ошибка'));
+                    }
+                } catch (error) {
+                    console.error('Ошибка при создании приёмок:', error);
+                    alert('Ошибка при создании приёмок');
+                }
+            });
+        });
+
+        // Вспомогательные функции
+        function formatDateTime(dateTimeStr) {
+            if (!dateTimeStr) return undefined;
+            const date = new Date(dateTimeStr);
+            return date.toISOString().replace('T', ' ').slice(0, 19);
+        }
+        
+        function generateExternalCode() {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+            let code = '';
+            for (let i = 0; i < 20; i++) {
+                code += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return code;
+        }
+    </script>
+</body>
+</html> 
