@@ -70,16 +70,23 @@
             </div>
             <div class="form-group">
                 <label for="organization">Организация:</label>
-                <select id="organization" required>
-                    <option value="">Выберите организацию</option>
+                <select id="organization" name="organization"  required>
+                    {% for org in organizations %}
+                    <option value="{{ org.moysklad_id }}">{{ org.name }}</option>
+                    {% endfor %}
                 </select>
+                <button type="button" id="refreshOrganizations">Обновить</button>
             </div>
             <div class="form-group">
                 <label for="store">Склад:</label>
-                <select id="store" required>
-                    <option value="">Выберите склад</option>
+                <select id="store" name="store" required>
+                    {% for w in warehouses%}
+                    <option value="{{ w.id }}">{{ org.name }}</option>
+                    {% endfor %}
                 </select>
+                <button type="button" id="refreshWarehouses">Обновить</button>
             </div>
+
 
             <h2>Позиции</h2>
             <table>
@@ -200,7 +207,43 @@
                 fatInput.addEventListener('input', calculateValues);
                 proteinInput.addEventListener('input', calculateValues);
             });
+            document.getElementById('refreshOrganizations').addEventListener('click', function() {
+                fetch('/api/update_organizations', {method: 'POST'})
+                    .then(response => {
+                        if (response.ok) {
+                            return response.json();
+                        } else {
+                            throw new Error('Ошибка при обновлении списка организаций');
+                        }
+                    })
+                    .then(data => {
+                        alert(data.message);
+                        fetchData('/api/organizations', '#organization');
+                    })
+                    .catch(error => {
+                        console.error('Ошибка:', error);
+                        alert('Не удалось обновить список организаций');
+                    });
+            });
 
+            document.getElementById('refreshWarehouses').addEventListener('click', function() {
+                fetch('/api/update_warehouses', {method: 'POST'})
+                    .then(response => {
+                        if (response.ok) {
+                            return response.json();
+                        } else {
+                            throw new Error('Ошибка при обновлении списка складов');
+                        }
+                    })
+                    .then(data => {
+                        alert(data.message);
+                        fetchData('/api/warehouses', '#store');
+                    })
+                    .catch(error => {
+                        console.error('Ошибка:', error);
+                        alert('Не удалось обновить список складов');
+                    });
+            });
             // Добавляем обработчик отправки формы
             document.getElementById('newSupplyForm').addEventListener('submit', async function(event) {
                 event.preventDefault();
@@ -241,7 +284,7 @@
 
                     const counterpartyId = counterpartySelect.value;
                     const counterpartyName = counterpartySelect.options[counterpartySelect.selectedIndex].text;
-                    
+                    console.log(counterpartyId)
                     suppliesByCounterparty[counterpartyId] = {
                         moment: formatDateTime(momentInput.value),
                         organization: {

@@ -173,11 +173,17 @@
             <table>
                 <thead>
                     <tr>
-                        <th>Номер</th>
-                        <th>Организация</th>
                         <th>Склад</th>
                         <th>Дата</th>
-                        <th>Сумма</th>
+                        <th>Контрагент</th>
+                        <th>Масса</th>
+                        <th>Процент жира</th>
+                        <th>Процент белка</th>
+                        <th>Цена</th>
+                        <th>Жирокилограммы</th>
+                        <th>Белкокилограммы</th>
+                        <th>НДС включен</th>
+                        <th>Действия</th>
                     </tr>
                 </thead>
                 <tbody id="supplies-table-body">
@@ -257,7 +263,7 @@
                     storeFilter.innerHTML = '<option value="">Все склады</option>';
                     stores.forEach(store => {
                         const option = document.createElement('option');
-                        option.value = store.meta.href;
+                        option.value = store.href;
                         option.textContent = store.name;
                         storeFilter.appendChild(option);
                     });
@@ -268,17 +274,21 @@
                     
                     supplies.forEach(supply => {
                         const row = document.createElement('tr');
-                        const created = new Date(supply.created).toLocaleString('ru-RU');
+                        const created = new Date(supply.created_at).toLocaleString('ru-RU');
                         row.innerHTML = `
-                            <td>
-                                <a href="javascript:void(0)" 
-                                   onclick="showSupplyDetails('${supply.id}')" 
-                                   class="supply-link">${supply.name}</a>
-                            </td>
-                            <td>${supply.organization || '-'}</td>
-                            <td>${supply.store_name || '-'}</td>
+                            <td>${supply.store_name}</td>
                             <td>${created}</td>
-                            <td>${supply.sum.toFixed(2)} ₽</td>
+                            <td>${supply.counterparty_name}</td>
+                            <td>${supply.milk_mass}</td>
+                            <td>${supply.fat_percent}</td>
+                            <td>${supply.protein_percent}</td>
+                            <td>${supply.price}</td>
+                            <td>${supply.fat_kg}</td>
+                            <td>${supply.protein_kg}</td>
+                            <td>${supply.vat_included ? 'Да' : 'Нет'}</td>
+                            <td>
+                                <button onclick="editSupply(${supply.id})">Редактировать</button>
+                            </td>
                         `;
                         tableBody.appendChild(row);
                     });
@@ -286,7 +296,7 @@
                 .catch(error => {
                     console.error('Ошибка при загрузке приёмок:', error);
                     document.getElementById('supplies-table-body').innerHTML = 
-                        '<tr><td colspan="5" style="color: red;">Ошибка при загрузке данных</td></tr>';
+                        '<tr><td colspan="11" style="color: red;">Ошибка при загрузке данных</td></tr>';
                 });
         }
 
@@ -387,6 +397,11 @@
                         </div>
                     `
                 });
+        }
+
+        function editSupply(supplyId) {
+            // Здесь будет реализована логика редактирования приёмки
+            console.log(`Редактирование приёмки с ID: ${supplyId}`);
         }
     </script>
 </body>

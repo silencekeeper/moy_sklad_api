@@ -4524,3 +4524,170 @@ Accept-Language: ru
 [2025-01-28 12:52:54,385] INFO in app: Приложение запущено
 [2025-01-28 12:53:05,337] INFO in app: Приложение запущено
 [2025-01-28 12:59:07,982] INFO in app: Приложение запущено
+[2025-01-28 13:00:03,993] INFO in app: Приложение запущено
+[2025-01-28 13:00:37,286] INFO in app: Приложение запущено
+[2025-01-28 13:12:43,882] INFO in app: Приложение запущено
+[2025-01-28 13:12:59,039] INFO in app: Приложение запущено
+[2025-01-28 13:13:31,734] INFO in app: Приложение запущено
+[2025-01-28 13:13:32,953] ERROR in app: Неожиданная ошибка при получении приёмок: (sqlite3.OperationalError) no such column: supply.vat_included
+[SQL: SELECT supply.id AS supply_id, supply.user_id AS supply_user_id, supply.created_at AS supply_created_at, supply.counterparty_href AS supply_counterparty_href, supply.external_code AS supply_external_code, supply.milk_mass AS supply_milk_mass, supply.fat_percent AS supply_fat_percent, supply.protein_percent AS supply_protein_percent, supply.price AS supply_price, supply.fat_kg AS supply_fat_kg, supply.protein_kg AS supply_protein_kg, supply.vat_included AS supply_vat_included, supply.store_href AS supply_store_href 
+FROM supply 
+WHERE supply.user_id = ?]
+[parameters: (2,)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+[2025-01-28 13:18:42,679] INFO in app: Приложение запущено
+[2025-01-28 13:18:43,719] INFO in app: Приложение запущено
+[2025-01-28 13:19:10,279] INFO in app: Приложение запущено
+[2025-01-28 13:19:11,470] INFO in app: Приложение запущено
+[2025-01-28 13:19:15,125] ERROR in app: Неожиданная ошибка при получении приёмок: (sqlite3.OperationalError) no such column: supply.vat_included
+[SQL: SELECT supply.id AS supply_id, supply.user_id AS supply_user_id, supply.created_at AS supply_created_at, supply.counterparty_href AS supply_counterparty_href, supply.external_code AS supply_external_code, supply.milk_mass AS supply_milk_mass, supply.fat_percent AS supply_fat_percent, supply.protein_percent AS supply_protein_percent, supply.price AS supply_price, supply.fat_kg AS supply_fat_kg, supply.protein_kg AS supply_protein_kg, supply.vat_included AS supply_vat_included, supply.store_href AS supply_store_href 
+FROM supply 
+WHERE supply.user_id = ?]
+[parameters: (2,)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+[2025-01-28 13:20:35,960] INFO in app: Приложение запущено
+[2025-01-28 13:20:45,359] INFO in app: Приложение запущено
+[2025-01-28 13:23:42,036] INFO in app: Приложение запущено
+[2025-01-28 13:23:43,399] INFO in app: Приложение запущено
+[2025-01-28 13:25:02,962] INFO in app: Приложение запущено
+[2025-01-28 13:27:19,745] INFO in app: Приложение запущено
+[2025-01-28 13:27:24,325] INFO in app: Приложение запущено
+[2025-01-28 13:27:28,503] INFO in app: Приложение запущено
+[2025-01-28 13:27:59,455] INFO in app: Приложение запущено
+[2025-01-28 13:28:01,208] INFO in app: Приложение запущено
+[2025-01-28 13:30:23,262] INFO in app: Приложение запущено
+[2025-01-28 13:34:39,611] INFO in app: Приложение запущено
+[2025-01-28 13:37:03,422] INFO in app: Приложение запущено
+[2025-01-28 13:48:21,118] INFO in app: Приложение запущено
+[2025-01-28 13:48:28,861] INFO in app: Приложение запущено
+[2025-01-28 13:49:55,007] INFO in app: Получены данные для сохранения токена
+[2025-01-28 13:49:55,010] INFO in app: Headers: Host: 116.203.125.36:5000
+Connection: keep-alive
+Content-Length: 59
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36
+Dnt: 1
+Content-Type: application/json
+Accept: */*
+Origin: http://116.203.125.36:5000
+Referer: http://116.203.125.36:5000/
+Accept-Encoding: gzip, deflate
+Accept-Language: en-US,en;q=0.9,ru;q=0.8
+Cookie: PHPSESSID=ofqd1f7kp58v9210jvvdke9523; session=eyJtc190b2tlbiI6IjAyYmYyYjUyMmY5YmI3NjcxMjQ1YjFjODI1ZTlkNjY5YTdjZDU4MWEiLCJ1c2VyX2lkIjoyfQ.Z5iVBA.dEhN7YU-o2VFhC95O6Pv7O8pq6s
+
+
+[2025-01-28 13:49:55,013] INFO in app: Data: b'{"access_token":"02bf2b522f9bb7671245b1c825e9d669a7cd581a"}'
+[2025-01-28 13:49:55,052] ERROR in app: Ошибка при сохранении токена: (sqlite3.IntegrityError) NOT NULL constraint failed: user.password
+[SQL: INSERT INTO user (username, password, remember_credentials) VALUES (?, ?, ?)]
+[parameters: ('token_user', None, 0)]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+[2025-01-28 13:50:00,683] INFO in app: Получены данные для сохранения токена
+[2025-01-28 13:50:00,686] INFO in app: Headers: Host: 116.203.125.36:5000
+Connection: keep-alive
+Content-Length: 59
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36
+Dnt: 1
+Content-Type: application/json
+Accept: */*
+Origin: http://116.203.125.36:5000
+Referer: http://116.203.125.36:5000/
+Accept-Encoding: gzip, deflate
+Accept-Language: en-US,en;q=0.9,ru;q=0.8
+Cookie: PHPSESSID=ofqd1f7kp58v9210jvvdke9523; session=eyJtc190b2tlbiI6IjAyYmYyYjUyMmY5YmI3NjcxMjQ1YjFjODI1ZTlkNjY5YTdjZDU4MWEiLCJ1c2VyX2lkIjoyfQ.Z5iVBA.dEhN7YU-o2VFhC95O6Pv7O8pq6s
+
+
+[2025-01-28 13:50:00,692] INFO in app: Data: b'{"access_token":"02bf2b522f9bb7671245b1c825e9d669a7cd581a"}'
+[2025-01-28 13:50:00,701] ERROR in app: Ошибка при сохранении токена: (sqlite3.IntegrityError) NOT NULL constraint failed: user.password
+[SQL: INSERT INTO user (username, password, remember_credentials) VALUES (?, ?, ?)]
+[parameters: ('token_user', None, 0)]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+[2025-01-28 13:56:24,490] INFO in app: Приложение запущено
+[2025-01-28 13:56:45,077] INFO in app: Приложение запущено
+[2025-01-28 13:57:18,573] INFO in app: Приложение запущено
+[2025-01-28 13:57:25,577] INFO in app: Приложение запущено
+[2025-01-28 13:57:31,285] INFO in app: Приложение запущено
+[2025-01-28 13:57:33,577] INFO in app: Приложение запущено
+[2025-01-28 13:57:38,717] INFO in app: Получены данные для сохранения токена
+[2025-01-28 13:57:38,725] INFO in app: Headers: Host: 116.203.125.36:5000
+Connection: keep-alive
+Content-Length: 59
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36
+Dnt: 1
+Content-Type: application/json
+Accept: */*
+Origin: http://116.203.125.36:5000
+Referer: http://116.203.125.36:5000/
+Accept-Encoding: gzip, deflate
+Accept-Language: en-US,en;q=0.9,ru;q=0.8
+Cookie: PHPSESSID=ofqd1f7kp58v9210jvvdke9523; session=eyJtc190b2tlbiI6IjAyYmYyYjUyMmY5YmI3NjcxMjQ1YjFjODI1ZTlkNjY5YTdjZDU4MWEiLCJ1c2VyX2lkIjoyfQ.Z5iVBA.dEhN7YU-o2VFhC95O6Pv7O8pq6s
+
+
+[2025-01-28 13:57:38,738] INFO in app: Data: b'{"access_token":"02bf2b522f9bb7671245b1c825e9d669a7cd581a"}'
+[2025-01-28 13:57:38,886] INFO in app: Создан новый пользователь token_user
+[2025-01-28 13:57:38,931] INFO in app: Токен успешно сохранен в сессии
+[2025-01-28 13:57:38,985] INFO in app: Токен сохранен в базе данных
+[2025-01-28 13:57:47,577] ERROR in app: Неожиданная ошибка при получении организаций: name 'Organization' is not defined
+[2025-01-28 13:59:43,488] INFO in app: Приложение запущено
+[2025-01-28 14:09:46,114] INFO in app: Приложение запущено
+[2025-01-28 14:13:07,958] INFO in app: Приложение запущено
+[2025-01-28 14:13:11,651] ERROR in app: Неожиданная ошибка при получении организаций: (sqlite3.OperationalError) no such column: organization.moysklad_id
+[SQL: SELECT organization.id AS organization_id, organization.name AS organization_name, organization.moysklad_id AS organization_moysklad_id, organization.user_id AS organization_user_id 
+FROM organization 
+WHERE organization.user_id = ?]
+[parameters: (1,)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+[2025-01-28 14:13:11,654] ERROR in app: Неожиданная ошибка при получении складов: (sqlite3.OperationalError) no such column: store.moysklad_id
+[SQL: SELECT store.id AS store_id, store.user_id AS store_user_id, store.moysklad_id AS store_moysklad_id, store.name AS store_name, store.href AS store_href 
+FROM store 
+WHERE store.user_id = ?]
+[parameters: (1,)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+[2025-01-28 14:14:42,369] INFO in app: Приложение запущено
+[2025-01-28 14:14:49,228] INFO in app: Приложение запущено
+[2025-01-28 14:14:59,977] INFO in app: Приложение запущено
+[2025-01-28 14:15:01,191] INFO in app: Приложение запущено
+[2025-01-28 14:15:08,509] INFO in app: Получены данные для сохранения токена
+[2025-01-28 14:15:08,512] INFO in app: Headers: Host: 116.203.125.36:5000
+Connection: keep-alive
+Content-Length: 59
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36
+Dnt: 1
+Content-Type: application/json
+Accept: */*
+Origin: http://116.203.125.36:5000
+Referer: http://116.203.125.36:5000/
+Accept-Encoding: gzip, deflate
+Accept-Language: en-US,en;q=0.9,ru;q=0.8
+Cookie: PHPSESSID=ofqd1f7kp58v9210jvvdke9523; session=eyJtc190b2tlbiI6IjAyYmYyYjUyMmY5YmI3NjcxMjQ1YjFjODI1ZTlkNjY5YTdjZDU4MWEiLCJ1c2VyX2lkIjoxfQ.Z5iqEg.qss1CCXi05tg6Dje916jNj0D4F0
+
+
+[2025-01-28 14:15:08,519] INFO in app: Data: b'{"access_token":"02bf2b522f9bb7671245b1c825e9d669a7cd581a"}'
+[2025-01-28 14:15:08,560] INFO in app: Создан новый пользователь token_user
+[2025-01-28 14:15:08,564] INFO in app: Токен успешно сохранен в сессии
+[2025-01-28 14:15:08,583] INFO in app: Токен сохранен в базе данных
+[2025-01-28 14:15:21,994] ERROR in app: Неожиданная ошибка при получении организаций: 'Organization' object has no attribute 'href'
+[2025-01-28 14:16:10,885] ERROR in app: Неожиданная ошибка при получении организаций: 'Organization' object has no attribute 'href'
+[2025-01-28 14:19:09,273] INFO in app: Приложение запущено
+[2025-01-28 14:20:29,864] INFO in app: Приложение запущено
+[2025-01-28 14:22:36,442] INFO in app: Приложение запущено
+[2025-01-28 14:23:59,120] INFO in app: Приложение запущено
+[2025-01-28 14:24:53,280] ERROR in app: Ошибка при создании приёмок: 400 [{
+  "errors" : [ {
+    "error" : "Ошибка формата: неправильное значение href для meta поля 'organization'",
+    "code" : 2013,
+    "moreInfo" : "https://dev.moysklad.ru/doc/api/remap/1.2/#error_2013",
+    "line" : 1,
+    "column" : 29
+  } ]
+}]
+[2025-01-28 14:42:10,087] INFO in app: Приложение запущено
+[2025-01-28 14:42:12,194] ERROR in app: Неожиданная ошибка при получении организаций: 'Organization' object has no attribute 'href'
+[2025-01-28 14:43:09,228] INFO in app: Приложение запущено
+[2025-01-28 14:43:44,541] ERROR in app: Ошибка при создании приёмок: 400 [{
+  "errors" : [ {
+    "error" : "Ошибка формата: значение поля 'price' не соответствует типу дробное число с плавающей запятой",
+    "code" : 2016,
+    "moreInfo" : "https://dev.moysklad.ru/doc/api/remap/1.2/#error_2016",
+    "line" : 1,
+    "column" : 679
+  } ]
+}]

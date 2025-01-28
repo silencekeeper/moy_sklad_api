@@ -31,7 +31,7 @@ migrate = Migrate(app, db)
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
-    password = db.Column(db.String(120), nullable=False)
+    password = db.Column(db.String(120), nullable=True)
     remember_credentials = db.Column(db.Boolean, default=False)
     tokens = db.relationship('Token', backref='user', lazy=True)
 
@@ -47,19 +47,33 @@ class Token(db.Model):
     
 class Supply(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    external_code = db.Column(db.String(255), unique=True, nullable=False)
-    moysklad_id = db.Column(db.String(255), unique=True, nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    store_href = db.Column(db.String(255), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
     counterparty_href = db.Column(db.String(255), nullable=False)
+    external_code = db.Column(db.String(255), nullable=False)
     milk_mass = db.Column(db.Float, nullable=False)
     fat_percent = db.Column(db.Float, nullable=False)
     protein_percent = db.Column(db.Float, nullable=False)
+    price = db.Column(db.Float, nullable=False)
     fat_kg = db.Column(db.Float, nullable=False)
     protein_kg = db.Column(db.Float, nullable=False)
-    price = db.Column(db.Float, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    vat_included = db.Column(db.Boolean, nullable=False)
+    store_href = db.Column(db.String(255), nullable=False, default=False)
+    organization_href = db.Column(db.String(255), nullable=False, default=False)
+    
+class Organization(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(255), nullable=False)
+    moysklad_id = db.Column(db.String(255), unique=True)  # Добавляем поле moysklad_id
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user = db.relationship('User', backref=db.backref('organizations', lazy=True))
 
+class Store(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    moysklad_id = db.Column(db.String(255), unique=True)  # Добавляем поле moysklad_id
+    name = db.Column(db.String(255), nullable=False)
+    href = db.Column(db.String(255), nullable=False)
 
 # Создаем директорию для логов, если её нет
 if not os.path.exists('logs'):
@@ -225,55 +239,34 @@ def get_supplies_list():
         store_href = request.args.get('store')
         
         query = Supply.query.filter_by(user_id=user.id)
-        
         if store_href:
             query = query.filter_by(store_href=store_href)
-        
-        supplies = query.all()
+        supplies = query.order_by(Supply.created_at.desc()).all()
 
-        # Получаем список складов
-        stores_response = requests.get(
-            f'{MOYSKLAD_API_URL}/entity/store',
-            headers=headers
-        )
-        
-        if stores_response.status_code == 200:
-            stores_data = stores_response.json()
-            stores = stores_data.get('rows', [])
-        else:
-            stores = []
+        stores = Store.query.filter_by(user_id=user.id).all()
 
         formatted_supplies = []
         for supply in supplies:
-            # Получаем данные организации по её href
-            organization_response = requests.get(supply.counterparty_href, headers=headers)
-            if organization_response.ok:
-                organization_data = organization_response.json()
-                organization_name = organization_data['name']
-            else:
-                organization_name = 'Неизвестная организация'
-
-            # Получаем данные склада по его href  
-            store_response = requests.get(supply.store_href, headers=headers)
-            if store_response.ok:
-                store_data = store_response.json()
-                store_name = store_data['name']
-            else:
-                store_name = 'Неизвестный склад'
-
+            store_name = next((s.name for s in stores if s.href == supply.store_href), 'Неизвестный склад')
+            counterparty_name = next((c.name for c in user.counterparties if c.href == supply.counterparty_href), 'Неизвестный контрагент')
             formatted_supply = {
                 'id': supply.id,
-                'name': supply.external_code,
-                'organization': organization_name,
                 'store_name': store_name,
-                'created': supply.created_at.isoformat(),
-                'sum': supply.price
+                'created_at': supply.created_at.isoformat(),
+                'counterparty_name': counterparty_name,
+                'milk_mass': supply.milk_mass,
+                'fat_percent': supply.fat_percent,
+                'protein_percent': supply.protein_percent,
+                'price': supply.price,
+                'fat_kg': supply.fat_kg,
+                'protein_kg': supply.protein_kg,
+                'vat_included': supply.vat_included
             }
             formatted_supplies.append(formatted_supply)
 
         return jsonify({
             'supplies': formatted_supplies,
-            'stores': stores
+            'stores': [{'name': s.name, 'href': s.href} for s in stores]
         })
 
     except Exception as e:
@@ -446,46 +439,33 @@ def create_supplies():
                 "externalCode": external_code,
                 "positions": []
             }
-            
-            # Добавляем позиции для жира и белка
-            if float(supply_data.get('fatKg', 0)) > 0:
-                supply['positions'].append({
-                    "quantity": float(supply_data.get('fatKg')),
-                    "price": float(supply_data.get('price', 0))*0.4/3.4 * 100*100,  # Конвертируем в копейки
-                    "assortment": {
-                        "meta": {
-                            "href": "https://api.moysklad.ru/api/remap/1.2/entity/product/87ed8bde-bfb9-11ef-0a80-18f3001bf494",
-                            "type": "product",
-                            "mediaType": "application/json"
-                        }
-                    }
-                })
 
-            if float(supply_data.get('proteinKg', 0)) > 0:
-                supply['positions'].append({
-                    "quantity": float(supply_data.get('proteinKg')),
-                    "price": float(supply_data.get('price', 0))*0.6/3.0 * 100*100,  # Конвертируем в копейки
-                    "assortment": {
-                        "meta": {
-                            "href": "https://api.moysklad.ru/api/remap/1.2/entity/product/58866606-bf73-11ef-0a80-0ca2001632c2",
-                            "type": "product",
-                            "mediaType": "application/json"
-                        }
+            # Добавляем позиции для жира и белка
+            supply['positions'].append({
+                "quantity": supply_data.get('fatKg',''),
+                "price": supply_data.get('fatPrice',''),
+                "assortment": {
+                    "meta": {
+                        "href": "https://api.moysklad.ru/api/remap/1.2/entity/product/87ed8bde-bfb9-11ef-0a80-18f3001bf494",
+                        "type": "product",
+                        "mediaType": "application/json"
                     }
-                })
+                }
+            })
+            supply['positions'].append({
+                "quantity": supply_data.get('proteinKg',''),
+                "price": supply_data.get('proteinPrice',''),
+                "assortment": {
+                    "meta": {
+                        "href": "https://api.moysklad.ru/api/remap/1.2/entity/product/a5623ead-bfb9-11ef-0a80-1654001bdea7",
+                        "type": "product",
+                        "mediaType": "application/json"
+                    }
+                }
+            })
 
             supplies.append(supply)
-            created_supplies.append({
-                "external_code": external_code,
-                "store_href": supply_data['store']['meta']['href'],
-                "counterparty_href": supply_data['agent']['meta']['href'],
-                "milk_mass": supply_data['mass'],
-                "fat_percent": supply_data['fat'],
-                "protein_percent": supply_data['protein'],
-                "fat_kg": supply_data['fatKg'],
-                "protein_kg": supply_data['proteinKg'],
-                "price": supply_data['price']
-            })
+            created_supplies.append({"external_code": external_code})
 
         url = f'{MOYSKLAD_API_URL}/entity/supply'
         headers = {
@@ -497,20 +477,13 @@ def create_supplies():
         response = requests.post(url, headers=headers, json=supplies)
         
         if response.ok:
+            # Сохраняем информацию о созданных приёмках в базу
             response_data = response.json()
             for i, supply_info in enumerate(response_data):
                 supply = Supply(
                     external_code=created_supplies[i]["external_code"],
                     moysklad_id=supply_info["id"],
-                    user_id=user.id,
-                    store_href=created_supplies[i]['store_href'],
-                    counterparty_href=created_supplies[i]['counterparty_href'],
-                    milk_mass=created_supplies[i]['milk_mass'],
-                    fat_percent=created_supplies[i]['fat_percent'],
-                    protein_percent=created_supplies[i]['protein_percent'],
-                    fat_kg=created_supplies[i]['fat_kg'],
-                    protein_kg=created_supplies[i]['protein_kg'],
-                    price=created_supplies[i]['price']
+                    user_id=user.id
                 )
                 db.session.add(supply)
             db.session.commit()
@@ -652,55 +625,142 @@ def get_counterparties():
         logging.error(f"Ошибка при получении контрагентов: {response.status_code} {response.text}")
         return jsonify([])
 
-@app.route('/api/organizations', methods=['GET'])
-def get_organizations():
-    logging.debug("Получение списка организаций из API МойСклад")
-    
-    user = db.session.get(User, session['user_id'])
-    if not user:
-        return jsonify({'error': 'User not found'}), 404
-
-    token = Token.query.filter_by(user_id=user.id).order_by(Token.created_at.desc()).first()
-
-    headers = {
-        'Authorization': f'Bearer {token.access_token}',
-        'Accept-Encoding': 'gzip'
-    }
-    
-    url = f"{MOYSKLAD_API_URL}/entity/organization"
-    response = requests.get(url, headers=headers)
-    
-    if response.status_code == 200:
-        organizations = response.json()["rows"]
-        return jsonify([{"id": org["id"], "name": org["name"]} for org in organizations])
-    else:
-        logging.error(f"Ошибка при получении организаций: {response.status_code} {response.text}")
-        return jsonify([])
-
 @app.route('/api/warehouses', methods=['GET'])
 def get_warehouses():
-    logging.debug("Получение списка складов из API МойСклад")
-    
-    user = db.session.get(User, session['user_id'])
-    if not user:
-        return jsonify({'error': 'User not found'}), 404
+    try:
+        if 'user_id' not in session:
+            return jsonify({'error': 'Необходима авторизация'}), 401
 
-    token = Token.query.filter_by(user_id=user.id).order_by(Token.created_at.desc()).first()
+        user = db.session.get(User, session['user_id'])
+        if not user:
+            return jsonify({'error': 'Пользователь не найден'}), 404
 
-    headers = {
-        'Authorization': f'Bearer {token.access_token}',
-        'Accept-Encoding': 'gzip'
-    }
-    
-    url = f"{MOYSKLAD_API_URL}/entity/store"
-    response = requests.get(url, headers=headers)
-    
-    if response.status_code == 200:
-        warehouses = response.json()["rows"]
-        return jsonify([{"id": w["id"], "name": w["name"]} for w in warehouses])
-    else:
-        logging.error(f"Ошибка при получении складов: {response.status_code} {response.text}")
-        return jsonify([])
+        warehouses = Store.query.filter_by(user_id=user.id).all()
+
+        return jsonify([{
+            'id': w.moysklad_id,
+            'name': w.name,
+            'href': w.href
+        } for w in warehouses])
+
+    except Exception as e:
+        app.logger.error(f'Неожиданная ошибка при получении складов: {str(e)}')
+        return jsonify({
+            'error': 'Внутренняя ошибка сервера',
+            'details': str(e)
+        }), 500
+@app.route('/api/update_organizations', methods=['POST'])
+def update_organizations():
+    try:
+        if 'user_id' not in session:
+            return jsonify({'error': 'Необходима авторизация'}), 401
+
+        user = db.session.get(User, session['user_id'])
+        if not user:
+            return jsonify({'error': 'Пользователь не найден'}), 404
+
+        token = Token.query.filter_by(user_id=user.id).order_by(Token.created_at.desc()).first()
+
+        url = f"{MOYSKLAD_API_URL}/entity/organization"
+        headers = {
+            'Authorization': f'Bearer {token.access_token}',
+            'Accept-Encoding': 'gzip'
+        }
+        response = requests.get(url, headers=headers)
+
+        if response.ok:
+            organizations_data = response.json()["rows"]
+            
+            # Сохраняем организации в базу данных
+            for org_data in organizations_data:
+                org = Organization.query.filter_by(moysklad_id=org_data["id"]).first()
+                if not org:
+                    org = Organization(name=org_data["name"], moysklad_id=org_data["id"], user_id=user.id)
+                    db.session.add(org)
+                else:
+                    org.name = org_data["name"]
+            db.session.commit()
+
+            return jsonify({'message': 'Список организаций успешно обновлен'})
+        else:
+            logging.error(f"Ошибка при обновлении организаций: {response.status_code} {response.text}")
+            return jsonify({'error': 'Не удалось обновить список организаций'}), 500
+
+    except Exception as e:
+        logging.exception("Ошибка при обновлении организаций")
+        return jsonify({
+            'error': 'Внутренняя ошибка сервера',
+            'details': str(e)
+        }), 500
+
+@app.route('/api/update_warehouses', methods=['POST'])
+def update_warehouses():
+    try:
+        if 'user_id' not in session:
+            return jsonify({'error': 'Необходима авторизация'}), 401
+
+        user = db.session.get(User, session['user_id'])
+        if not user:
+            return jsonify({'error': 'Пользователь не найден'}), 404
+
+        token = Token.query.filter_by(user_id=user.id).order_by(Token.created_at.desc()).first()
+
+        url = f"{MOYSKLAD_API_URL}/entity/store"
+        headers = {
+            'Authorization': f'Bearer {token.access_token}',
+            'Accept-Encoding': 'gzip'
+        }
+        response = requests.get(url, headers=headers)
+        
+        if response.ok:
+            warehouses_data = response.json()["rows"]
+            print(warehouses_data)
+
+            # Сохраняем склады в базу данных  
+            for w_data in warehouses_data:
+                warehouse = Store.query.filter_by(moysklad_id=w_data["id"]).first()
+                if not warehouse:
+                    warehouse = Store(name=w_data["name"], moysklad_id=w_data["id"], user_id=user.id, href=w_data["meta"]["href"])
+                    db.session.add(warehouse)
+                else:
+                    warehouse.name = w_data["name"]
+            db.session.commit()
+
+            return jsonify({'message': 'Список складов успешно обновлен'})
+        else:
+            logging.error(f"Ошибка при обновлении складов: {response.status_code} {response.text}")
+            return jsonify({'error': 'Не удалось обновить список складов'}), 500
+
+    except Exception as e:
+        logging.exception("Ошибка при обновлении складов")
+        return jsonify({
+            'error': 'Внутренняя ошибка сервера',
+            'details': str(e) 
+        }), 500
+        
+@app.route('/api/organizations', methods=['GET'])
+def get_organizations():
+    try:
+        if 'user_id' not in session:
+            return jsonify({'error': 'Необходима авторизация'}), 401
+
+        user = db.session.get(User, session['user_id'])
+        if not user:
+            return jsonify({'error': 'Пользователь не найден'}), 404
+
+        organizations = Organization.query.filter_by(user_id=user.id).all()
+
+        return jsonify([{
+            'name': o.name,
+            'id': o.moysklad_id
+        } for o in organizations])
+
+    except Exception as e:
+        app.logger.error(f'Неожиданная ошибка при получении организаций: {str(e)}')
+        return jsonify({
+            'error': 'Внутренняя ошибка сервера',
+            'details': str(e)
+        }), 500
 
 @app.route('/api/products', methods=['GET'])
 def get_products():
@@ -804,6 +864,25 @@ def get_filtered_supplies():
         formatted_supplies.append(formatted_supply)
     
     return jsonify(formatted_supplies)
+
+def create_supply(data):
+    supply = Supply(
+        external_code=data['externalCode'],
+        user_id=data['user_id'],
+        store_href=data['store']['meta']['href'],
+        created_at=data['moment'],
+        counterparty_href=data['agent']['meta']['href'],
+        milk_mass=data['mass'],
+        fat_percent=data['fat'],
+        protein_percent=data['protein'],
+        fat_kg=data['fatKg'],
+        protein_kg=data['proteinKg'],
+        price=data['price'],
+        vat_included=data.get('vatEnabled', False)  # Значение по умолчанию - False
+    )
+    db.session.add(supply)
+    db.session.commit()
+    return supply
 
 if __name__ == '__main__':
     app.run(debug=True, host="0.0.0.0")
